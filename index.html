@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>林業保育署執行成果</title>
+<title>林業保育署執行成果 · 即時同步</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -24,6 +24,7 @@
   --nando:#4a7c85;       /* 納戶色 — 集水區治理組 */
   --beniger:#9c4b3a;     /* 紅柄色 — 森林管理組 */
   --radius:2px;
+  --live:#7fb37a;
 }
 
 *{box-sizing:border-box;}
@@ -80,45 +81,12 @@ h1{
   max-width:640px;
   margin:0;
 }
-.src{
+.masthead .src{
   margin-top:18px;
   font-family:'JetBrains Mono', monospace;
   font-size:11.5px;
   color:#9caebd;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  flex-wrap:wrap;
 }
-.refresh-btn{
-  font-family:'JetBrains Mono', monospace;
-  font-size:11px;
-  color:var(--kincha);
-  background:transparent;
-  border:1px solid rgba(193,154,75,.5);
-  border-radius:20px;
-  padding:4px 14px;
-  cursor:pointer;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-}
-.refresh-btn:hover{ background:rgba(193,154,75,.12); }
-.refresh-btn:disabled{ opacity:.5; cursor:default; }
-.refresh-btn .spin{
-  display:inline-block;
-  width:10px;height:10px;
-  border-radius:50%;
-  border:2px solid rgba(193,154,75,.35);
-  border-top-color:var(--kincha);
-  animation:spin .8s linear infinite;
-  visibility:hidden;
-}
-.refresh-btn.loading .spin{ visibility:visible; }
-@keyframes spin{ to{ transform:rotate(360deg); } }
-.sync-status{ color:#9caebd; }
-.sync-status.ok{ color:#8fae8f; }
-.sync-status.err{ color:#d19a86; }
 
 /* seigaiha trim — thin decorative wave rule */
 .seigaiha{
@@ -135,111 +103,87 @@ h1{
   opacity:.7;
 }
 
-/* ---------- hero card ---------- */
-.hero-wrap{
+/* ---------- live status bar ---------- */
+.statusbar-wrap{
   max-width:1240px;
-  margin:36px auto 0;
+  margin:28px auto 0;
   padding:0 clamp(20px,4vw,40px);
   opacity:0;
   animation:riseIn .7s ease forwards;
-  animation-delay:.1s;
+  animation-delay:.06s;
 }
-.hero{
-  position:relative;
-  background:var(--washi);
-  color:var(--sumi);
-  border-radius:var(--radius);
-  padding:clamp(28px,4vw,44px) clamp(28px,5vw,48px) 32px;
-  box-shadow:0 24px 44px -20px rgba(0,0,0,.6);
-  border-left:6px solid var(--shu);
-}
-.hero::after{
-  content:"";
-  position:absolute;
-  inset:10px;
-  border:1px dashed rgba(42,39,31,.16);
-  pointer-events:none;
-}
-.hero-top{
+.statusbar{
   display:flex;
+  align-items:center;
   justify-content:space-between;
-  align-items:flex-start;
   flex-wrap:wrap;
-  gap:16px;
-  margin-bottom:6px;
+  gap:12px;
+  background:rgba(243,236,217,0.06);
+  border:1px solid rgba(193,154,75,0.28);
+  border-radius:var(--radius);
+  padding:12px 18px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11.5px;
+  color:#cdd9e2;
 }
-.hero-tag{
+.statusbar-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--live);
+  box-shadow:0 0 0 0 rgba(127,179,122,.6);
+  animation:pulse 2s infinite;
+  flex-shrink:0;
+}
+.dot.err{ background:var(--shu); animation:none; }
+.dot.loading{ background:var(--kincha); }
+@keyframes pulse{
+  0%{ box-shadow:0 0 0 0 rgba(127,179,122,.55); }
+  70%{ box-shadow:0 0 0 7px rgba(127,179,122,0); }
+  100%{ box-shadow:0 0 0 0 rgba(127,179,122,0); }
+}
+.status-text b{ color:var(--washi); font-weight:700; }
+.status-text .muted{ color:#8fa0ae; }
+.refresh-btn{
   font-family:'JetBrains Mono', monospace;
   font-size:11px;
-  letter-spacing:.14em;
-  color:var(--matsuba);
-  background:rgba(92,122,82,0.1);
-  border:1px solid rgba(92,122,82,0.35);
-  padding:4px 10px;
+  letter-spacing:.06em;
+  color:var(--kon);
+  background:var(--kincha);
+  border:none;
+  padding:7px 14px;
   border-radius:20px;
-}
-.hanko{
-  width:66px;height:66px;
-  border:2.5px solid var(--shu);
-  border-radius:50%;
-  color:var(--shu);
+  cursor:pointer;
   display:flex;
   align-items:center;
-  justify-content:center;
-  text-align:center;
-  font-family:'Noto Serif TC', serif;
-  font-weight:700;
-  font-size:12px;
-  line-height:1.3;
-  letter-spacing:.05em;
-  transform:rotate(-6deg);
-  opacity:.9;
-  flex-shrink:0;
-  writing-mode:vertical-rl;
+  gap:7px;
+  transition:filter .15s ease, transform .15s ease;
 }
-.hero-label{
-  font-family:'Noto Serif TC', serif;
-  font-size:16px;
-  font-weight:700;
-  color:var(--matsuba);
-  margin:14px 0 4px;
+.refresh-btn:hover{ filter:brightness(1.08); }
+.refresh-btn:active{ transform:scale(.96); }
+.refresh-btn:disabled{ opacity:.55; cursor:default; }
+.refresh-btn svg{
+  width:12px;height:12px;
+  transition:transform .5s ease;
 }
-.hero-number{
-  font-family:'Noto Serif TC', serif;
-  font-weight:900;
-  font-size:clamp(48px, 8.5vw, 92px);
-  line-height:1;
-  letter-spacing:-.01em;
+.refresh-btn.spinning svg{ animation:spin .8s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.auto-toggle{
   display:flex;
-  align-items:baseline;
-  gap:10px;
-  color:var(--sumi);
-}
-.hero-number .unit{
-  font-family:'Noto Sans TC', sans-serif;
-  font-size:22px;
-  font-weight:700;
-  color:var(--shu-dark);
-}
-.hero-foot{
-  display:flex;
-  justify-content:space-between;
   align-items:center;
-  margin-top:22px;
-  padding-top:16px;
-  border-top:1px solid var(--washi-2);
-  flex-wrap:wrap;
-  gap:10px;
-  font-family:'JetBrains Mono', monospace;
-  font-size:12px;
-  color:#6c6650;
+  gap:6px;
+  font-size:11px;
+  color:#9caebd;
+  cursor:pointer;
+  user-select:none;
 }
-.hero-foot a{
-  color:var(--shu-dark);
-  text-decoration:none;
-  border-bottom:1px solid currentColor;
-}
-.hero-foot a:hover{ color:var(--shu); }
+.auto-toggle input{ accent-color:var(--kincha); cursor:pointer; }
 
 /* ---------- sections ---------- */
 .section{
@@ -309,6 +253,7 @@ h1{
     letter-spacing:.1em;
   }
   .section-tag .count{ margin-top:0; margin-left:auto; }
+  .statusbar{ flex-direction:column; align-items:flex-start; }
 }
 @media (max-width:420px){
   .section-cards{ grid-template-columns:1fr; }
@@ -327,6 +272,12 @@ h1{
   cursor:pointer;
 }
 .card.flipped .card-inner{ transform:rotateY(180deg); }
+.card.updated .card-inner{ animation:flash 1.4s ease; }
+@keyframes flash{
+  0%{ box-shadow:0 0 0 0 rgba(193,154,75,.85); }
+  30%{ box-shadow:0 0 0 6px rgba(193,154,75,.35); }
+  100%{ box-shadow:0 0 0 0 rgba(193,154,75,0); }
+}
 
 .face{
   position:absolute; inset:0;
@@ -367,13 +318,25 @@ h1{
   color:var(--shu-dark);
   font-family:'Noto Sans TC', sans-serif;
 }
+.card-foot{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-top:8px;
+  gap:8px;
+}
+.card-date{
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px;
+  color:#8a7f5c;
+  letter-spacing:.03em;
+}
 .card-hint{
   font-family:'JetBrains Mono', monospace;
   font-size:10px;
   color:#9c8f68;
   letter-spacing:.05em;
-  align-self:flex-end;
-  margin-top:8px;
+  white-space:nowrap;
 }
 
 .face-back{
@@ -409,6 +372,127 @@ h1{
   border-top:1px solid rgba(243,236,217,.25);
 }
 
+/* ---------- loading / error states ---------- */
+.state-panel{
+  max-width:1240px;
+  margin:48px auto 0;
+  padding:0 clamp(20px,4vw,40px);
+}
+.state-box{
+  background:rgba(243,236,217,0.05);
+  border:1px dashed rgba(193,154,75,0.4);
+  border-radius:var(--radius);
+  padding:36px 24px;
+  text-align:center;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12.5px;
+  color:#cdd9e2;
+}
+.state-box .spinner{
+  width:28px;height:28px;
+  margin:0 auto 14px;
+  border-radius:50%;
+  border:2.5px solid rgba(193,154,75,.3);
+  border-top-color:var(--kincha);
+  animation:spin .8s linear infinite;
+}
+.state-box .retry-btn{
+  margin-top:14px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  color:var(--washi);
+  background:var(--shu);
+  border:none;
+  padding:8px 18px;
+  border-radius:20px;
+  cursor:pointer;
+}
+.state-box .diag-toggle-btn{
+  margin-top:14px;
+  margin-left:8px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  color:var(--sumi);
+  background:var(--kincha);
+  border:none;
+  padding:8px 18px;
+  border-radius:20px;
+  cursor:pointer;
+}
+.diag-box{
+  margin-top:14px;
+  background:rgba(0,0,0,0.28);
+  border:1px solid rgba(193,154,75,0.3);
+  border-radius:var(--radius);
+  padding:16px 18px;
+  text-align:left;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  line-height:1.8;
+  color:#dbe4ea;
+}
+.diag-box h4{
+  margin:0 0 8px;
+  font-size:11.5px;
+  letter-spacing:.08em;
+  color:var(--kincha);
+  text-transform:uppercase;
+}
+.diag-box .diag-row{
+  margin-bottom:10px;
+  word-break:break-all;
+}
+.diag-box .diag-label{ color:#8fa0ae; }
+.diag-box .diag-fail{ color:#e3897a; }
+.diag-box .diag-ok{ color:var(--live); }
+.diag-box a{ color:var(--kincha); }
+.diag-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+}
+.diag-actions button, .diag-actions a{
+  font-family:'JetBrains Mono', monospace;
+  font-size:10.5px;
+  color:var(--washi);
+  background:rgba(243,236,217,0.1);
+  border:1px solid rgba(243,236,217,0.3);
+  padding:6px 12px;
+  border-radius:16px;
+  cursor:pointer;
+  text-decoration:none;
+  display:inline-block;
+}
+.diag-actions button:hover, .diag-actions a:hover{ background:rgba(243,236,217,0.2); }
+.diag-checklist{
+  margin:10px 0 0;
+  padding-left:18px;
+  color:#cdd9e2;
+}
+.diag-checklist li{ margin-bottom:5px; }
+
+.skeleton-cards{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:16px;
+  margin-top:20px;
+}
+@media (max-width:1099px){ .skeleton-cards{ grid-template-columns:repeat(3, 1fr); } }
+@media (max-width:759px){ .skeleton-cards{ grid-template-columns:repeat(2, 1fr); } }
+@media (max-width:420px){ .skeleton-cards{ grid-template-columns:1fr; } }
+.skeleton-card{
+  height:200px;
+  border-radius:var(--radius);
+  background:linear-gradient(100deg, rgba(243,236,217,.05) 30%, rgba(243,236,217,.12) 50%, rgba(243,236,217,.05) 70%);
+  background-size:200% 100%;
+  animation:shimmer 1.4s infinite;
+}
+@keyframes shimmer{
+  from{ background-position:200% 0; }
+  to{ background-position:-200% 0; }
+}
+
 footer{
   max-width:1240px;
   margin:56px auto 0;
@@ -420,6 +504,7 @@ footer{
   opacity:0;
 }
 footer.show{ animation:riseIn .6s ease forwards; }
+footer a{ color:var(--kincha); text-decoration:none; border-bottom:1px solid currentColor; }
 
 @keyframes riseIn{
   from{ opacity:0; transform:translateY(14px); }
@@ -427,7 +512,7 @@ footer.show{ animation:riseIn .6s ease forwards; }
 }
 @media (prefers-reduced-motion: reduce){
   *{ animation:none !important; transition:none !important; }
-  .masthead,.hero-wrap,.section,footer{ opacity:1 !important; }
+  .masthead,.hero-wrap,.section,.statusbar-wrap,footer{ opacity:1 !important; }
 }
 
 .card-inner:focus-visible{
@@ -439,22 +524,48 @@ footer.show{ animation:riseIn .6s ease forwards; }
 <body>
 
 <div class="masthead">
-  <div class="eyebrow">執行成果紀錄 · 8月統計</div>
+  <div class="eyebrow">執行成果紀錄 · 即時同步</div>
   <h1>林業保育署執行成果</h1>
-  <p>彙整各業務組別最新累計數據，以字卡形式呈現。點按卡片可翻面查看更新日期與備註說明。</p>
-  <div class="src">
-    <span>資料來源 · 公開試算表（rawdata_0827）</span>
-    <button class="refresh-btn" id="refresh-btn"><span class="spin"></span><span id="refresh-label">重新抓取資料</span></button>
-    <span class="sync-status" id="sync-status">尚未同步（目前為手動整理版本）</span>
-  </div>
+  <p>彙整各業務組別最新累計數據，以字卡形式呈現。資料直接連線 Google 試算表，同一項目以最新「更新時間」為準，並每 5 分鐘自動同步一次。點按卡片可翻面查看更新日期與備註說明。</p>
+  <div class="src">資料來源 · 林業署重要成果統計資料（Google 試算表）</div>
 </div>
 
 <div class="seigaiha"><i></i></div>
 
+<div class="statusbar-wrap">
+  <div class="statusbar">
+    <div class="statusbar-left">
+      <span class="dot loading" id="statusDot"></span>
+      <span class="status-text" id="statusText">正在連線試算表…</span>
+    </div>
+    <div class="statusbar-left">
+      <label class="auto-toggle">
+        <input type="checkbox" id="autoToggle" checked>
+        自動更新（每 5 分鐘）
+      </label>
+      <button class="refresh-btn" id="refreshBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        立即更新
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="statePanel" class="state-panel" style="display:none;">
+  <div class="state-box" id="stateBox"></div>
+  <div class="diag-box" id="diagBox" style="display:none;"></div>
+</div>
+
 <div id="sections"></div>
-<footer id="footer">民國年份已自動換算為西元年 · 卡片內容依公開試算表整理</footer>
+<footer id="footer">更新時間採民國年格式（YYY/MM/DD）· 卡片內容依「林業署重要成果統計資料」試算表即時整理 · 若試算表新增相同項目，將自動以最新更新時間覆蓋顯示</footer>
 
 <script>
+/* ====== 設定 ====== */
+const SHEET_ID = '16IHPQfAIT2_UtRMGTBgSzVpai09gE3Wx0olDEjRZOUE';
+const SHEET_GID = '1518272627';
+const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5 分鐘
+const FETCH_TIMEOUT_MS = 12000;
+
 const ACCENT_MAP = {
   '保育管理組': 'var(--matsuba)',
   '森林育樂組': 'var(--mizu)',
@@ -463,141 +574,199 @@ const ACCENT_MAP = {
   '集水區治理組': 'var(--nando)',
   '森林管理組': 'var(--beniger)'
 };
-
 const GROUP_ORDER = ['保育企劃組', '保育管理組', '森林管理組', '森林產業組', '集水區治理組', '森林育樂組'];
+const COL_ALIASES = {
+  name:   ['項目'],
+  value:  ['值'],
+  unit:   ['單位'],
+  date:   ['更新時間'],
+  division: ['組別'],
+  note:   ['備註']
+};
 
-const DATA = [
-  { name:'綠鬣蜥累計移除成果', value:'657,389', unit:'隻', date:'2026.08.21', division:'保育管理組', note:'月份統計資料可參考以下網址', url:'https://www.forest.gov.tw/0009777' },
-  { name:'埃及聖䴉累計移除數量', value:'18,294', unit:'隻', date:'2026.08.18', division:'保育管理組', note:'' },
-  { name:'埃及聖䴉累計巡護次數', value:'6,921', unit:'次', date:'2026.08.18', division:'保育管理組', note:'' },
-  { name:'黑熊救傷收容數量', value:'6', unit:'隻', date:'2026.07.31', division:'保育管理組', note:'長期收容1隻、短期照養3隻、野放2隻' },
-  { name:'友善農地及棲地面積', value:'162.25', unit:'公頃', date:'2026.08.25', division:'保育管理組', note:'瀕危物種及重要棲地生態服務給付執行成果' },
+let currentItemsKey = ''; // 用於偵測資料是否有變化
+let autoTimer = null;
+let isFetching = false;
+let lastAttemptLog = []; // 診斷用：記錄每次嘗試的方式與結果
 
-  { name:'115年國家森林遊樂區累計遊客人數', value:'1,919,010', unit:'人次', date:'2026.08.25', division:'森林育樂組', note:'' },
-  { name:'115年國家森林遊樂區累計門票收入', value:'141,891', unit:'千元', date:'2026.08.25', division:'森林育樂組', note:'' },
-  { name:'115年平地森林園區累計遊客人數', value:'553,566', unit:'人次', date:'2026.08.25', division:'森林育樂組', note:'' },
-  { name:'115年林業文化園區累計遊客人數', value:'2,221,369', unit:'人次', date:'2026.08.25', division:'森林育樂組', note:'' },
-  { name:'115年阿里山林業鐵路(本線)累計搭乘人數', value:'113,277', unit:'人次', date:'2026.08.25', division:'森林育樂組', note:'' },
-  { name:'115年阿里山林業鐵路(支線)累計搭乘人數', value:'658,692', unit:'人次', date:'2026.08.25', division:'森林育樂組', note:'' },
-  { name:'115年阿里山林業鐵路(本線)累計收入', value:'32,130', unit:'千元', date:'2026.08.25', division:'森林育樂組', note:'' },
-  { name:'115年阿里山林業鐵路(支線)累計收入', value:'71,116', unit:'千元', date:'2026.08.25', division:'森林育樂組', note:'' },
-  { name:'115年森林育樂場域促參履約案件', value:'9', unit:'件', date:'2026.08.25', division:'森林育樂組', note:'鳩之澤、大雪山、北門車站、金山南路、墾丁賓館、觀霧山莊、阿里山賓館、遊園車、八仙山' },
-  { name:'115年森林育樂場域促參前置作業案件', value:'7', unit:'件', date:'2026.08.25', division:'森林育樂組', note:'觀霧+牡丹莊、檜村、武陵、合歡山、林田山、力行山莊、阿里山林業村' },
-
-  { name:'115年國有林造林(含國有林、海岸林、生態植被復育)', value:'140', unit:'公頃', date:'2026.08.27', division:'森林產業組', note:'' },
-  { name:'115年平地造林-各分署造林綠美化', value:'18', unit:'公頃', date:'2026.08.27', division:'森林產業組', note:'' },
-  { name:'115年平地造林計畫20年期滿後續輔導計畫受理面積', value:'319', unit:'公頃', date:'2026.08.27', division:'森林產業組', note:'生物棲地及景觀價值區位:受理237公頃　木材生產價值區位:受理82公頃' },
-  { name:'114年獎勵輔導造林計畫受理面積', value:'234', unit:'公頃', date:'2026.08.27', division:'森林產業組', note:'木材生產林類:受理213公頃計243筆　非木材生產林類:受理21公頃計27筆' },
-  { name:'115年獎勵輔導造林計畫受理面積', value:'632', unit:'公頃', date:'2026.08.27', division:'森林產業組', note:'木材生產林類:受理540公頃計478筆　非木材生產林類:受理92公頃計100筆' },
-  { name:'推動國產材桌椅', value:'20,417', unit:'組', date:'2026.08.27', division:'森林產業組', note:'成果計14縣市、75校' },
-  { name:'取得臺灣林產品生產追溯條碼', value:'5,772', unit:'件', date:'2026.08.27', division:'森林產業組', note:'木材10.4萬立方公尺、竹材90.1萬公斤' },
-  { name:'臺灣木材網媒合', value:'722', unit:'件', date:'2026.08.27', division:'森林產業組', note:'包含立木和原木等合計5萬立方公尺', url:'https://taiwanwood.forest.gov.tw/zh-tw/' },
-  { name:'115年移除銀合歡面積', value:'46', unit:'公頃', date:'2026.08.27', division:'森林產業組', note:'' },
-  { name:'115年移除小花蔓澤蘭面積', value:'1,029', unit:'公頃', date:'2026.08.27', division:'森林產業組', note:'' },
-  { name:'115年移除刺軸含羞木木面積', value:'41', unit:'公頃', date:'2026.08.27', division:'森林產業組', note:'' },
-
-  { name:'自然碳匯與生物多樣性專案媒合平臺', value:'34', unit:'案', date:'2026.08.21', division:'保育企劃組', note:'資料每季更新', url:'https://esg.forest.gov.tw/ForestESG/Home/Index' },
-  { name:'自然碳匯與生物多樣性專案媒合平臺 - 合作團體', value:'53', unit:'個', date:'2026.08.21', division:'保育企劃組', note:'資料每季更新', url:'https://esg.forest.gov.tw/ForestESG/Home/Index' },
-  { name:'自然碳匯與生物多樣性專案媒合平臺 - 累積碳匯效益', value:'796', unit:'公噸', date:'2026.08.21', division:'保育企劃組', note:'資料每季更新', url:'https://esg.forest.gov.tw/ForestESG/Home/Index' },
-  { name:'自然碳匯與生物多樣性專案媒合平臺 - 累計金額', value:'7,673', unit:'萬元', date:'2026.08.21', division:'保育企劃組', note:'資料每季更新', url:'https://esg.forest.gov.tw/ForestESG/Home/Index' },
-
-  { name:'崩塌地處理', value:'40', unit:'公頃', date:'2026.07.31', division:'集水區治理組', note:'115年目標值：100.16公頃' },
-  { name:'抑制土砂下移量', value:'155', unit:'萬立方公尺', date:'2026.07.31', division:'集水區治理組', note:'115年目標值：336.36萬立方公尺' },
-  { name:'林道維護及改善', value:'29', unit:'公里', date:'2026.07.31', division:'集水區治理組', note:'115年目標值：76.3公里' },
-  { name:'列管堰塞湖', value:'3', unit:'處', date:'2026.08.27', division:'集水區治理組', note:'泰崗溪、馬太鞍溪、萬里溪', url:'https://qlakenew.forest.gov.tw/FarmlandQlakenew' },
-
-  { name:'搶救森林火災', value:'37', unit:'次數', date:'2026.07.31', division:'森林管理組', note:'' },
-  { name:'取締竊取森林主副產物', value:'28', unit:'次數', date:'2026.07.31', division:'森林管理組', note:'' },
-  { name:'社區林業巡護篇', value:'79', unit:'社區數', date:'2026.08.24', division:'森林管理組', note:'' },
-  { name:'向海致敬之保安林環境維護累計垃圾清運量', value:'37,404', unit:'噸', date:'2026.08.24', division:'森林管理組', note:'行政院向海致敬計畫(自109年起)　動員人次累計83,126人　清理長度累計22,421.3公里' },
-  { name:'租地補償收回', value:'6,300', unit:'公頃', date:'2026.08.24', division:'森林管理組', note:'目標面積7,161.21公頃　達成率87.97%' },
-];
+const sectionsEl = document.getElementById('sections');
+const statePanel = document.getElementById('statePanel');
+const stateBox = document.getElementById('stateBox');
+const diagBox = document.getElementById('diagBox');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const refreshBtn = document.getElementById('refreshBtn');
+const autoToggle = document.getElementById('autoToggle');
+const footerEl = document.getElementById('footer');
 
 function escapeHtml(str){
   return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-// 自動把備註文字裡的網址轉成可點連結
-function autoLink(escapedText){
-  return escapedText.replace(/(https?:\/\/[^\s<]+)/g, url => `<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
+/* 民國年 7 碼字串（例如 1150821）→ 115/08/21；已含斜線則原樣回傳 */
+function formatRocDate(raw){
+  const s = String(raw ?? '').trim();
+  if(!s) return '';
+  if(s.includes('/')) return s;
+  const digits = s.replace(/\D/g, '');
+  if(digits.length === 7){
+    return `${digits.slice(0,3)}/${digits.slice(3,5)}/${digits.slice(5,7)}`;
+  }
+  return s;
+}
+
+/* 供排序比較用的純數字日期值 */
+function dateSortValue(raw){
+  const digits = String(raw ?? '').replace(/\D/g, '');
+  return digits ? parseInt(digits, 10) : 0;
+}
+
+/* 從備註欄拆出網址與純文字備註 */
+function extractNoteAndUrl(rawNote){
+  const text = String(rawNote ?? '').trim();
+  if(!text) return { note:'', url:'' };
+  const match = text.match(/https?:\/\/[^\s、，)]+/);
+  if(!match) return { note:text, url:'' };
+  const url = match[0];
+  let note = (text.slice(0, match.index) + text.slice(match.index + url.length))
+    .replace(/[：:\s]+$/,'')
+    .replace(/^[（(]\s*/,'')
+    .replace(/\s*[）)]$/,'')
+    .replace(/\s{2,}/g,' ')
+    .trim();
+  return { note, url };
 }
 
 function linkify(note, url){
   const safe = escapeHtml(note || '');
-  let html = autoLink(safe);
-  if(url && !(note || '').includes(url)){
-    html += `${html ? '<br>' : ''}<a href="${url}" target="_blank" rel="noopener">查看更多 →</a>`;
+  if(url) return `${safe}${safe ? '<br>' : ''}<a href="${escapeHtml(url)}" target="_blank" rel="noopener">查看更多 →</a>`;
+  return safe || '此項目暫無備註。';
+}
+
+/* 找出試算表欄位在回傳資料中的索引位置 */
+function resolveColumnIndex(cols, aliases){
+  for(let i = 0; i < cols.length; i++){
+    const label = (cols[i].label || '').trim();
+    if(aliases.some(a => label.includes(a))) return i;
   }
-  return html || '此項目暫無備註。';
+  return -1;
 }
 
-function rocDateToWestern(raw){
-  const s = String(raw ?? '').trim();
-  if(!/^\d{6,7}$/.test(s)) return s || '—';
-  const yy = s.length === 7 ? s.slice(0,3) : s.slice(0,2);
-  const mm = s.length === 7 ? s.slice(3,5) : s.slice(2,4);
-  const dd = s.length === 7 ? s.slice(5,7) : s.slice(4,6);
-  return `${parseInt(yy,10) + 1911}.${mm}.${dd}`;
+function cellText(cell){
+  if(!cell) return '';
+  if(cell.f !== undefined && cell.f !== null && cell.f !== '') return String(cell.f);
+  if(cell.v === undefined || cell.v === null) return '';
+  if(typeof cell.v === 'number') return String(Math.round(cell.v * 100) / 100);
+  return String(cell.v);
 }
 
-function formatNumber(raw){
-  const s = String(raw ?? '').trim();
-  const cleaned = s.replace(/,/g, '');
-  if(cleaned === '' || isNaN(Number(cleaned))) return s;
-  const num = Number(cleaned);
-  return Number.isInteger(num) ? num.toLocaleString('en-US') : num.toLocaleString('en-US', { maximumFractionDigits:2 });
+function parseGvizResponse(response){
+  const cols = response.table.cols;
+  const idx = {
+    name: resolveColumnIndex(cols, COL_ALIASES.name),
+    value: resolveColumnIndex(cols, COL_ALIASES.value),
+    unit: resolveColumnIndex(cols, COL_ALIASES.unit),
+    date: resolveColumnIndex(cols, COL_ALIASES.date),
+    division: resolveColumnIndex(cols, COL_ALIASES.division),
+    note: resolveColumnIndex(cols, COL_ALIASES.note)
+  };
+  if(idx.name === -1 || idx.value === -1 || idx.division === -1){
+    throw new Error('找不到必要欄位（項目/值/組別），請確認試算表欄位名稱。');
+  }
+
+  const rows = response.table.rows || [];
+  const parsed = [];
+  rows.forEach(row => {
+    const c = row.c || [];
+    const name = idx.name >= 0 ? cellText(c[idx.name]).trim() : '';
+    const division = idx.division >= 0 ? cellText(c[idx.division]).trim() : '';
+    if(!name || !division) return; // 略過空白列
+
+    const value = idx.value >= 0 ? cellText(c[idx.value]).trim() : '';
+    const unit = idx.unit >= 0 ? cellText(c[idx.unit]).trim() : '';
+    const rawDate = idx.date >= 0 ? cellText(c[idx.date]).trim() : '';
+    const rawNote = idx.note >= 0 ? cellText(c[idx.note]).trim() : '';
+    const { note, url } = extractNoteAndUrl(rawNote);
+
+    parsed.push({
+      name, division, value, unit,
+      date: formatRocDate(rawDate),
+      dateSort: dateSortValue(rawDate),
+      note, url
+    });
+  });
+
+  /* 相同「項目＋組別」以最新更新時間為準 */
+  const latestMap = new Map();
+  parsed.forEach(item => {
+    const key = item.name + '||' + item.division;
+    const existing = latestMap.get(key);
+    if(!existing || item.dateSort >= existing.dateSort){
+      latestMap.set(key, item);
+    }
+  });
+
+  return Array.from(latestMap.values());
 }
 
-const sectionsEl = document.getElementById('sections');
-
-function renderAll(){
-  sectionsEl.innerHTML = '';
-
+function groupItems(items){
   const groupMap = {};
-  DATA.forEach(item => {
+  items.forEach(item => {
     if(!(item.division in groupMap)) groupMap[item.division] = [];
     groupMap[item.division].push(item);
   });
-  GROUP_ORDER.forEach(div => { if(!groupMap[div]) return; });
-  // 確保新出現、未列在 GROUP_ORDER 的組別也會顯示（排在最後）
-  Object.keys(groupMap).forEach(div => { if(!GROUP_ORDER.includes(div)) GROUP_ORDER.push(div); });
+  const known = GROUP_ORDER.filter(div => groupMap[div]).map(div => ({ division: div, items: groupMap[div] }));
+  const extra = Object.keys(groupMap).filter(div => !GROUP_ORDER.includes(div)).map(div => ({ division: div, items: groupMap[div] }));
+  return known.concat(extra);
+}
 
-  const groups = GROUP_ORDER.filter(div => groupMap[div]).map(div => ({ division:div, items:groupMap[div] }));
+function renderSections(items, opts){
+  opts = opts || {};
+  const changedKeys = opts.changedKeys || new Set();
+  const groups = groupItems(items);
 
+  sectionsEl.innerHTML = '';
   groups.forEach((group, gi) => {
     const section = document.createElement('div');
     section.className = 'section';
     const accent = ACCENT_MAP[group.division] || 'var(--matsuba)';
 
-    const cardsHtml = group.items.map(item => `
-      <div class="card" tabindex="0">
-        <div class="card-inner">
-          <div class="face face-front" style="--accent:${accent}">
-            <div>
-              <div class="card-label">${escapeHtml(item.name)}</div>
-              <div class="card-number">${escapeHtml(item.value)}<span class="unit">${escapeHtml(item.unit)}</span></div>
-            </div>
-            <div class="card-hint">點按翻面 ›</div>
+    const cardsHtml = group.items.map(item => {
+      const key = item.name + '||' + item.division;
+      const isNew = changedKeys.has(key);
+      return `
+    <div class="card${isNew ? ' updated' : ''}" tabindex="0">
+      <div class="card-inner">
+        <div class="face face-front" style="--accent:${accent}">
+          <div>
+            <div class="card-label">${escapeHtml(item.name)}</div>
+            <div class="card-number">${escapeHtml(item.value)}<span class="unit">${escapeHtml(item.unit)}</span></div>
           </div>
-          <div class="face face-back" style="--accent:${accent}">
-            <div class="back-title">Field Note</div>
-            <div class="back-body">${linkify(item.note, item.url)}</div>
-            <div class="back-row"><span>更新日期</span><span>${escapeHtml(item.date)}</span></div>
+          <div class="card-foot">
+            <span class="card-date">更新 ${escapeHtml(item.date)}</span>
+            <span class="card-hint">點按翻面 ›</span>
           </div>
         </div>
-      </div>`).join('');
+        <div class="face face-back" style="--accent:${accent}">
+          <div class="back-title">Field Note</div>
+          <div class="back-body">${linkify(item.note, item.url)}</div>
+          <div class="back-row"><span>更新日期</span><span>${escapeHtml(item.date)}</span></div>
+        </div>
+      </div>
+    </div>`;
+    }).join('');
 
     section.innerHTML = `
-      <div class="section-body">
-        <div class="section-tag" style="--tag-color:${accent}">
-          <span>${escapeHtml(group.division)}</span>
-          <span class="count">${group.items.length}</span>
-        </div>
-        <div class="section-cards">${cardsHtml}</div>
-      </div>`;
+    <div class="section-body">
+      <div class="section-tag" style="--tag-color:${accent}">
+        <span>${escapeHtml(group.division)}</span>
+        <span class="count">${group.items.length}</span>
+      </div>
+      <div class="section-cards">${cardsHtml}</div>
+    </div>`;
 
     sectionsEl.appendChild(section);
-    section.style.animationDelay = `${0.1 + gi * 0.06}s`;
+    section.style.animationDelay = `${0.05 + gi * 0.06}s`;
     requestAnimationFrame(() => section.classList.add('show'));
 
     section.querySelectorAll('.card').forEach(card => {
@@ -608,93 +777,270 @@ function renderAll(){
     });
   });
 
-  document.getElementById('footer').classList.add('show');
+  if(!footerEl.classList.contains('show')) footerEl.classList.add('show');
 }
 
-renderAll();
+function showSkeleton(){
+  statePanel.style.display = 'block';
+  stateBox.innerHTML = `<div class="spinner"></div>正在從 Google 試算表載入最新資料…`;
+  sectionsEl.style.display = 'none';
+}
 
-/* ---------- 即時重新抓取（需在瀏覽器中開啟本檔案才會生效，Claude 預覽沙盒會擋外部連線） ---------- */
-const SHEET_ID = "1R2aWDNvycu9KmBiUouIIXfI7ROUv9x8qwmUEKpuvZcY";
+function buildDiagnosticText(){
+  const lines = [];
+  lines.push('【林業保育署執行成果 · 診斷資訊】');
+  lines.push('時間：' + new Date().toLocaleString('zh-TW', { hour12:false }));
+  lines.push('試算表 ID：' + SHEET_ID);
+  lines.push('分頁 GID：' + SHEET_GID);
+  lines.push('瀏覽器 UA：' + navigator.userAgent);
+  lines.push('嘗試紀錄：');
+  lastAttemptLog.forEach((a, i) => {
+    lines.push(`  ${i+1}. ${a.method} → ${a.ok ? '成功' : '失敗：' + a.error}`);
+    lines.push(`     URL: ${a.url}`);
+  });
+  return lines.join('\n');
+}
 
+function renderDiagnosticPanel(){
+  if(!lastAttemptLog.length){
+    diagBox.style.display = 'none';
+    return;
+  }
+  const url = gvizJsonUrl(null);
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
+  const rowsHtml = lastAttemptLog.map(a => `
+    <div class="diag-row">
+      <span class="${a.ok ? 'diag-ok' : 'diag-fail'}">${a.ok ? '✓' : '✗'} ${escapeHtml(a.method)}</span><br>
+      <span class="diag-label">結果：</span>${a.ok ? '成功' : escapeHtml(a.error)}
+    </div>`).join('');
+
+  diagBox.innerHTML = `
+    <h4>診斷資訊</h4>
+    ${rowsHtml}
+    <div class="diag-row"><span class="diag-label">請求網址：</span><br>${escapeHtml(url)}</div>
+    <div class="diag-actions">
+      <a href="${escapeHtml(url)}" target="_blank" rel="noopener">在新分頁開啟診斷連結</a>
+      <a href="${escapeHtml(csvUrl)}" target="_blank" rel="noopener">測試 CSV 匯出連結</a>
+      <button id="copyDiagBtn">複製診斷資訊</button>
+    </div>
+    <ul class="diag-checklist">
+      <li>點「在新分頁開啟診斷連結」：若看到一段以 <code>google.visualization.Query.setResponse(...)</code> 開頭的文字，代表權限與網址正確，問題出在瀏覽器攔截（見下一項）；若看到 Google 登入畫面或錯誤頁，代表分享權限尚未真正生效。</li>
+      <li>若使用公司／機關網路，請確認防火牆或代理伺服器未封鎖 docs.google.com。</li>
+      <li>暫時停用瀏覽器的廣告攔截 / 隱私權擴充功能後再試一次。</li>
+      <li>改用無痕視窗，或換一台裝置 / 網路環境測試，排除本機快取或延伸套件影響。</li>
+      <li>若「診斷連結」本身也打不開，請確認試算表分享設定確實是「知道連結的人」而非「限制」，且此分頁（GID）未被刪除或搬移。</li>
+    </ul>`;
+  diagBox.style.display = 'block';
+
+  const copyBtn = document.getElementById('copyDiagBtn');
+  if(copyBtn){
+    copyBtn.addEventListener('click', async () => {
+      try{
+        await navigator.clipboard.writeText(buildDiagnosticText());
+        copyBtn.textContent = '已複製 ✓';
+        setTimeout(() => { copyBtn.textContent = '複製診斷資訊'; }, 2000);
+      }catch(e){
+        copyBtn.textContent = '複製失敗，請手動選取';
+      }
+    });
+  }
+}
+
+function showError(message, canRetry){
+  statePanel.style.display = 'block';
+  sectionsEl.style.display = sectionsEl.children.length ? '' : 'none';
+  stateBox.innerHTML = `⚠ ${escapeHtml(message)}` + (canRetry ? `<br><button class="retry-btn" id="retryBtn">重新嘗試</button>` : '');
+  const retryBtn = document.getElementById('retryBtn');
+  if(retryBtn) retryBtn.addEventListener('click', () => fetchSheetData(true));
+  renderDiagnosticPanel();
+}
+
+function clearState(){
+  statePanel.style.display = 'none';
+  sectionsEl.style.display = '';
+  diagBox.style.display = 'none';
+}
+
+function setStatus(mode, text){
+  statusDot.className = 'dot' + (mode === 'error' ? ' err' : mode === 'loading' ? ' loading' : '');
+  statusText.innerHTML = text;
+}
+
+function nowLabel(){
+  const d = new Date();
+  return d.toLocaleTimeString('zh-TW', { hour12:false });
+}
+
+function gvizJsonUrl(withCallback){
+  const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${SHEET_GID}&headers=1&_=${Date.now()}`;
+  return withCallback ? `${base}&tqx=out:json;responseHandler:${withCallback}` : `${base}&tqx=out:json`;
+}
+
+/* 從 gviz 回應文字（google.visualization.Query.setResponse({...})）取出純 JSON */
+function parseGvizWrapper(text){
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if(start === -1 || end === -1 || start > end){
+    throw new Error('回應內容不是預期的試算表格式（可能是登入頁、權限錯誤頁，或連線被攔截）。');
+  }
+  try{
+    return JSON.parse(text.slice(start, end + 1));
+  }catch(e){
+    throw new Error('無法解析試算表回應內容（JSON 格式錯誤）。');
+  }
+}
+
+function checkGvizStatus(response){
+  if(response && response.status === 'error'){
+    const msg = (response.errors && response.errors[0] && response.errors[0].detailed_message) || '試算表回傳錯誤（可能是分享權限或分頁 GID 不正確）。';
+    throw new Error(msg);
+  }
+  return response;
+}
+
+/* 方式一：直接以 fetch() 讀取（多數情況下最快，且能取得明確的 HTTP 狀態） */
+async function loadViaFetch(){
+  const url = gvizJsonUrl(null);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try{
+    const res = await fetch(url, { signal: controller.signal, credentials: 'omit', mode: 'cors', cache: 'no-store' });
+    if(!res.ok){
+      throw new Error(`HTTP ${res.status}：試算表未回應正常內容，請確認分享權限與網址是否正確。`);
+    }
+    const text = await res.text();
+    return checkGvizStatus(parseGvizWrapper(text));
+  }catch(e){
+    if(e.name === 'AbortError') throw new Error('連線逾時（fetch）。');
+    throw e;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+/* 方式二：以 <script> 標籤載入 JSONP，繞過部分瀏覽器的跨網域 fetch 限制 */
 function loadViaJsonp(){
   return new Promise((resolve, reject) => {
-    const cbName = 'gsheetCB_' + Date.now() + '_' + Math.floor(Math.random()*10000);
-    const script = document.createElement('script');
-    const timer = setTimeout(() => { cleanup(); reject(new Error('連線逾時')); }, 12000);
+    const cbName = '__gvizCb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if(settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('連線逾時（script 標籤未於時限內回應）。'));
+    }, FETCH_TIMEOUT_MS);
+
     function cleanup(){
+      clearTimeout(timer);
       delete window[cbName];
       if(script.parentNode) script.parentNode.removeChild(script);
-      clearTimeout(timer);
     }
-    window[cbName] = (response) => { cleanup(); resolve(response); };
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cbName}`;
-    script.onerror = () => { cleanup(); reject(new Error('無法連線到試算表（網路或分享權限問題）')); };
+
+    window[cbName] = function(response){
+      if(settled) return;
+      settled = true;
+      cleanup();
+      try{
+        resolve(checkGvizStatus(response));
+      }catch(e){
+        reject(e);
+      }
+    };
+
+    const url = gvizJsonUrl(cbName);
+    const script = document.createElement('script');
+    script.src = url;
+    script.onerror = () => {
+      if(settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('script 載入失敗（網路封鎖、擴充功能攔截，或網址無法連線）。'));
+    };
     document.body.appendChild(script);
   });
 }
 
-function gvizToItems(response){
-  if(!response || !response.table) throw new Error('回傳格式異常');
-  const rows = response.table.rows || [];
-  const cellAt = (row, idx) => {
-    const c = row.c && row.c[idx];
-    if(!c) return '';
-    return (c.f !== undefined && c.f !== null && String(c.f).trim() !== '') ? c.f : (c.v ?? '');
-  };
-  return rows
-    .map(r => ({
-      name: String(cellAt(r,0)).trim(),
-      value: formatNumber(cellAt(r,1)),
-      unit: String(cellAt(r,2)).trim(),
-      date: rocDateToWestern(r.c && r.c[3] ? r.c[3].v : ''),
-      division: String(cellAt(r,4)).trim(),
-      note: String(cellAt(r,5) ?? '').trim(),
-    }))
-    .filter(item => item.name !== '');
-}
+/* 依序嘗試兩種讀取策略，並記錄每一步的結果供診斷面板顯示 */
+async function loadSheetWithDiagnostics(){
+  lastAttemptLog = [];
+  const urlNoCb = gvizJsonUrl(null);
 
-const refreshBtn = document.getElementById('refresh-btn');
-const refreshLabel = document.getElementById('refresh-label');
-const syncStatus = document.getElementById('sync-status');
-
-refreshBtn.addEventListener('click', async () => {
-  refreshBtn.disabled = true;
-  refreshBtn.classList.add('loading');
-  refreshLabel.textContent = '讀取中…';
-  syncStatus.className = 'sync-status';
-  syncStatus.textContent = '正在連線至試算表 …';
+  try{
+    const response = await loadViaFetch();
+    lastAttemptLog.push({ method: '方式一 · 直接連線 (fetch)', url: urlNoCb, ok: true });
+    return response;
+  }catch(e1){
+    lastAttemptLog.push({ method: '方式一 · 直接連線 (fetch)', url: urlNoCb, ok: false, error: e1.message });
+  }
 
   try{
     const response = await loadViaJsonp();
-    const fetched = gvizToItems(response);
-    if(!fetched.length) throw new Error('讀到的資料是空的');
-
-    // 依「組別＋項目名稱」比對，有則更新、沒有則新增
-    fetched.forEach(newItem => {
-      const existing = DATA.find(d => d.division === newItem.division && d.name === newItem.name);
-      if(existing){
-        existing.value = newItem.value;
-        existing.unit = newItem.unit;
-        existing.date = newItem.date;
-        existing.note = newItem.note;
-      } else {
-        DATA.push(newItem);
-      }
-    });
-
-    renderAll();
-    const now = new Date();
-    syncStatus.classList.add('ok');
-    syncStatus.textContent = `已同步 · ${now.toLocaleTimeString('zh-TW', { hour12:false })}`;
-  }catch(err){
-    syncStatus.classList.add('err');
-    syncStatus.textContent = `讀取失敗（${err.message}）— 若在 Claude 預覽視窗中屬正常現象，請下載後於瀏覽器開啟再試`;
-  }finally{
-    refreshBtn.disabled = false;
-    refreshBtn.classList.remove('loading');
-    refreshLabel.textContent = '重新抓取資料';
+    lastAttemptLog.push({ method: '方式二 · script 標籤 (JSONP)', url: '同上（另加 responseHandler 參數）', ok: true });
+    return response;
+  }catch(e2){
+    lastAttemptLog.push({ method: '方式二 · script 標籤 (JSONP)', url: '同上（另加 responseHandler 參數）', ok: false, error: e2.message });
   }
-});
+
+  const combined = lastAttemptLog.map(a => `${a.method}：${a.ok ? '成功' : '失敗 — ' + a.error}`).join('｜');
+  const err = new Error('兩種讀取方式皆失敗。' + combined);
+  err.isDualFailure = true;
+  throw err;
+}
+
+async function fetchSheetData(isManual){
+  if(isFetching) return;
+  isFetching = true;
+  refreshBtn.disabled = true;
+  refreshBtn.classList.add('spinning');
+
+  const firstLoad = sectionsEl.children.length === 0;
+  if(firstLoad) showSkeleton();
+  setStatus('loading', isManual ? '正在重新同步…' : '正在同步中…');
+
+  try{
+    const response = await loadSheetWithDiagnostics();
+    const items = parseGvizResponse(response);
+    if(!items.length) throw new Error('試算表目前沒有可顯示的資料列。');
+
+    const newKey = items.map(i => `${i.name}|${i.division}|${i.value}|${i.unit}|${i.date}`).sort().join('~~');
+    const changedKeys = new Set();
+    if(currentItemsKey && newKey !== currentItemsKey){
+      // 找出實際有變化的項目，用來做卡片提示動畫
+      const prevSet = new Set(currentItemsKey.split('~~'));
+      items.forEach(i => {
+        const sig = `${i.name}|${i.division}|${i.value}|${i.unit}|${i.date}`;
+        if(!prevSet.has(sig)) changedKeys.add(i.name + '||' + i.division);
+      });
+    }
+    currentItemsKey = newKey;
+
+    clearState();
+    renderSections(items, { changedKeys });
+    setStatus('live', `即時連線中 · 最後同步 <b>${nowLabel()}</b> <span class="muted">(共 ${items.length} 筆)</span>`);
+  }catch(err){
+    console.error(err);
+    setStatus('error', `同步失敗 <span class="muted">· 最後嘗試 ${nowLabel()}</span>`);
+    showError(err.isDualFailure ? '無法從試算表取得資料（兩種連線方式皆失敗，詳見下方診斷資訊）。' : (err.message || '資料載入失敗，請稍後再試。'), true);
+  }finally{
+    isFetching = false;
+    refreshBtn.disabled = false;
+    refreshBtn.classList.remove('spinning');
+  }
+}
+
+function scheduleAutoRefresh(){
+  if(autoTimer) clearInterval(autoTimer);
+  if(autoToggle.checked){
+    autoTimer = setInterval(() => fetchSheetData(false), AUTO_REFRESH_MS);
+  }
+}
+
+refreshBtn.addEventListener('click', () => fetchSheetData(true));
+autoToggle.addEventListener('change', scheduleAutoRefresh);
+
+fetchSheetData(false);
+scheduleAutoRefresh();
 </script>
 
 </body>
