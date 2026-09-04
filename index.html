@@ -625,7 +625,7 @@ function dateSortValue(raw){
 function extractNoteAndUrl(rawNote){
   const text = String(rawNote ?? '').trim();
   if(!text) return { note:'', url:'' };
-  const match = text.match(/https?:\/\/[^\s、，)]+/);
+  const match = text.match(/https?:\/\/[^\s、，)<]+/);
   if(!match) return { note:text, url:'' };
   const url = match[0];
   let note = (text.slice(0, match.index) + text.slice(match.index + url.length))
@@ -637,8 +637,18 @@ function extractNoteAndUrl(rawNote){
   return { note, url };
 }
 
+/* 備註文字內若含有 <br> 標記（含各種變體）或實際換行字元，一律轉為真正的換行呈現 */
+function formatNoteHtml(note){
+  if(!note) return '';
+  const withPlaceholder = String(note).replace(/\r\n|\r|\n/g, '\u0000NL\u0000');
+  let escaped = escapeHtml(withPlaceholder);
+  escaped = escaped.split('\u0000NL\u0000').join('<br>');
+  escaped = escaped.replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+  return escaped;
+}
+
 function linkify(note, url){
-  const safe = escapeHtml(note || '');
+  const safe = formatNoteHtml(note);
   if(url) return `${safe}${safe ? '<br>' : ''}<a href="${escapeHtml(url)}" target="_blank" rel="noopener">查看更多 →</a>`;
   return safe || '此項目暫無備註。';
 }
