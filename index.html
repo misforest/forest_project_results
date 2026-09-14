@@ -854,8 +854,8 @@ function parseGvizResponse(response){
   });
 
   /* ---- 個別森林遊樂區項目：不獨立成字卡，改為加總後掛在對應的累計卡片翻面 ---- */
-  const VISITOR_TOTAL_NAME = '國家森林遊樂區遊客累計人數';
-  const REVENUE_TOTAL_NAME = '國家森林遊樂區累計門票累計收入';
+  const VISITOR_TOTAL_NAME = '國家森林遊樂區遊客人數';
+  const REVENUE_TOTAL_NAME = '國家森林遊樂區門票收入';
   const isParkVisitorItem = name => name.includes('國家森林遊樂區') && name.includes('遊客') && name !== VISITOR_TOTAL_NAME;
   const isParkRevenueItem = name => name.includes('國家森林遊樂區') && (name.includes('門票') || name.includes('收入')) && name !== REVENUE_TOTAL_NAME;
   const parkLabel = name => {
