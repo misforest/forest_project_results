@@ -295,13 +295,30 @@ h1{
   justify-content:space-between;
   border-left:4px solid var(--accent, var(--matsuba));
 }
+.card-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:10px;
+}
 .card-label{
   font-family:'Noto Serif TC', serif;
   font-weight:700;
   font-size:13.5px;
   line-height:1.5;
   color:#3c3527;
-  margin-bottom:10px;
+}
+.card-year-badge{
+  flex:0 0 auto;
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px;
+  letter-spacing:.03em;
+  color:var(--washi);
+  background:var(--accent, var(--matsuba));
+  padding:2px 8px;
+  border-radius:10px;
+  white-space:nowrap;
 }
 .card-number{
   font-family:'Noto Serif TC', serif;
@@ -362,6 +379,49 @@ h1{
   margin:6px 0;
 }
 .back-body a{ color:var(--kincha); }
+.year-list{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+.year-line{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:8px;
+  padding:5px 0;
+  border-bottom:1px dashed rgba(243,236,217,.2);
+}
+.year-line:last-child{ border-bottom:none; }
+.year-badge{
+  font-family:'JetBrains Mono', monospace;
+  font-size:10.5px;
+  color:rgba(243,236,217,.8);
+  flex:0 0 auto;
+}
+.year-num{
+  font-family:'Noto Serif TC', serif;
+  font-weight:700;
+  font-size:13px;
+  color:var(--washi);
+  text-align:right;
+}
+.year-num .year-unit{
+  font-family:'Noto Sans TC', sans-serif;
+  font-weight:500;
+  font-size:10.5px;
+  color:rgba(243,236,217,.75);
+  margin-left:3px;
+}
+.back-note{
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid rgba(243,236,217,.25);
+  font-size:10.5px;
+  line-height:1.6;
+  color:rgba(243,236,217,.75);
+}
+.no-year-note{ font-size:11.8px; line-height:1.65; }
 .back-row{
   display:flex;
   justify-content:space-between;
@@ -526,7 +586,7 @@ footer a{ color:var(--kincha); text-decoration:none; border-bottom:1px solid cur
 <div class="masthead">
   <div class="eyebrow">執行成果紀錄 · 即時同步</div>
   <h1>林業保育署執行成果</h1>
-  <p>彙整各業務組別最新累計數據，以字卡形式呈現。資料直接連線 Google 試算表，同一項目以最新「更新時間」為準，並每 5 分鐘自動同步一次。點按卡片可翻面查看更新日期與備註說明。</p>
+  <p>彙整各業務組別累計數據，以字卡形式呈現。資料直接連線 Google 試算表，卡片正面顯示每個項目「最新年度」的數值，點按卡片翻面可查看該項目各年度的完整資料；若項目無年度資料，翻面則顯示備註說明。資料每 5 分鐘自動同步一次。</p>
   <div class="src">資料來源 · 林業署重要成果統計資料（Google 試算表）</div>
 </div>
 
@@ -557,12 +617,12 @@ footer a{ color:var(--kincha); text-decoration:none; border-bottom:1px solid cur
 </div>
 
 <div id="sections"></div>
-<footer id="footer">更新時間採民國年格式（YYY/MM/DD）· 卡片內容依「林業署重要成果統計資料」試算表即時整理 · 若試算表新增相同項目，將自動以最新更新時間覆蓋顯示</footer>
+<footer id="footer">更新時間採民國年格式（YYY/MM/DD）· 卡片正面顯示各項目最新年度資料，翻面可查看各年度完整數據 · 資料依試算表即時整理</footer>
 
 <script>
 /* ====== 設定 ====== */
-const SHEET_ID = '16IHPQfAIT2_UtRMGTBgSzVpai09gE3Wx0olDEjRZOUE';
-const SHEET_GID = '1518272627';
+const SHEET_ID = '1yMCIk7Qb8Yk2JHuv0G-70qN7svbbQCmHzQmJ0yMki30';
+const SHEET_GID = '1508398255';
 const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5 分鐘
 const FETCH_TIMEOUT_MS = 12000;
 
@@ -577,6 +637,7 @@ const ACCENT_MAP = {
 const GROUP_ORDER = ['保育企劃組', '保育管理組', '森林管理組', '森林產業組', '集水區治理組', '森林育樂組'];
 const COL_ALIASES = {
   name:   ['項目'],
+  year:   ['年度'],
   value:  ['值'],
   unit:   ['單位'],
   date:   ['更新時間'],
@@ -619,6 +680,28 @@ function formatRocDate(raw){
 function dateSortValue(raw){
   const digits = String(raw ?? '').replace(/\D/g, '');
   return digits ? parseInt(digits, 10) : 0;
+}
+
+/* 將值欄位（可能含千分位逗號等符號）轉為純數字，供加總使用 */
+function parseNumber(raw){
+  const cleaned = String(raw ?? '').replace(/[^0-9.\-]/g, '');
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? 0 : n;
+}
+
+/* 將數字加上千分位逗號 */
+function formatNumber(n){
+  return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+/* 解析「年度」欄位：回傳顯示用文字與排序用數值；若欄位為空或無法解析則視為無年度資料 */
+function parseYearInfo(raw){
+  const s = String(raw ?? '').trim();
+  if(!s) return { label:'', sortValue:-1, hasYear:false };
+  const nums = s.match(/\d+/g);
+  if(!nums) return { label:s, sortValue:-1, hasYear:false };
+  const sortValue = Math.max(...nums.map(n => parseInt(n, 10)));
+  return { label:s, sortValue, hasYear:true };
 }
 
 /* 從備註欄拆出網址與純文字備註 */
@@ -674,6 +757,7 @@ function parseGvizResponse(response){
   const cols = response.table.cols;
   const idx = {
     name: resolveColumnIndex(cols, COL_ALIASES.name),
+    year: resolveColumnIndex(cols, COL_ALIASES.year),
     value: resolveColumnIndex(cols, COL_ALIASES.value),
     unit: resolveColumnIndex(cols, COL_ALIASES.unit),
     date: resolveColumnIndex(cols, COL_ALIASES.date),
@@ -685,38 +769,158 @@ function parseGvizResponse(response){
   }
 
   const rows = response.table.rows || [];
-  const parsed = [];
+
+  /* 第一步：把每一列轉成單筆「年度資料」紀錄，並依「項目＋組別」分組 */
+  const groupMap = new Map();
   rows.forEach(row => {
     const c = row.c || [];
     const name = idx.name >= 0 ? cellText(c[idx.name]).trim() : '';
     const division = idx.division >= 0 ? cellText(c[idx.division]).trim() : '';
     if(!name || !division) return; // 略過空白列
 
+    const rawYear = idx.year >= 0 ? cellText(c[idx.year]).trim() : '';
     const value = idx.value >= 0 ? cellText(c[idx.value]).trim() : '';
     const unit = idx.unit >= 0 ? cellText(c[idx.unit]).trim() : '';
     const rawDate = idx.date >= 0 ? cellText(c[idx.date]).trim() : '';
     const rawNote = idx.note >= 0 ? cellText(c[idx.note]).trim() : '';
     const { note, url } = extractNoteAndUrl(rawNote);
+    const yearInfo = parseYearInfo(rawYear);
 
-    parsed.push({
-      name, division, value, unit,
+    const key = name + '||' + division;
+    if(!groupMap.has(key)) groupMap.set(key, { name, division, byYearLabel: new Map() });
+    const group = groupMap.get(key);
+
+    const entry = {
+      yearLabel: yearInfo.label,
+      yearSort: yearInfo.sortValue,
+      hasYear: yearInfo.hasYear,
+      value, unit,
       date: formatRocDate(rawDate),
       dateSort: dateSortValue(rawDate),
       note, url
-    });
-  });
+    };
 
-  /* 相同「項目＋組別」以最新更新時間為準 */
-  const latestMap = new Map();
-  parsed.forEach(item => {
-    const key = item.name + '||' + item.division;
-    const existing = latestMap.get(key);
-    if(!existing || item.dateSort >= existing.dateSort){
-      latestMap.set(key, item);
+    /* 同一項目＋組別＋年度若重複出現，以最新更新時間為準 */
+    const dedupeKey = yearInfo.hasYear ? ('y:' + yearInfo.label) : ('n:' + group.byYearLabel.size);
+    const existing = group.byYearLabel.get(dedupeKey);
+    if(!existing || entry.dateSort >= existing.dateSort){
+      group.byYearLabel.set(dedupeKey, entry);
     }
   });
 
-  return Array.from(latestMap.values());
+  /* 第二步：整理每個項目的年度清單，決定卡片正面要顯示的「最新年度」資料 */
+  const items = [];
+  groupMap.forEach(group => {
+    const entries = Array.from(group.byYearLabel.values());
+    const yearEntries = entries
+      .filter(e => e.hasYear)
+      .sort((a, b) => b.yearSort - a.yearSort || b.dateSort - a.dateSort);
+    const noYearEntries = entries.filter(e => !e.hasYear);
+
+    const hasYearData = yearEntries.length > 0;
+    const latest = hasYearData ? yearEntries[0] : (noYearEntries[0] || entries[0]);
+    if(!latest) return;
+
+    items.push({
+      name: group.name,
+      division: group.division,
+      hasYearData,
+      latest,
+      yearEntries,
+      noYearEntries,
+      fallbackNote: noYearEntries[0] || latest
+    });
+  });
+
+  /* ---- 個別森林遊樂區項目：不獨立成字卡，改為加總後掛在對應的累計卡片翻面 ---- */
+  const VISITOR_TOTAL_NAME = '國家森林遊樂區遊客累計人數';
+  const REVENUE_TOTAL_NAME = '國家森林遊樂區累計門票累計收入';
+  const isParkVisitorItem = name => name.includes('國家森林遊樂區') && name.includes('遊客') && name !== VISITOR_TOTAL_NAME;
+  const isParkRevenueItem = name => name.includes('國家森林遊樂區') && (name.includes('門票') || name.includes('收入')) && name !== REVENUE_TOTAL_NAME;
+  const parkLabel = name => {
+    const m = name.match(/^(.*?)國家森林遊樂區/);
+    return m && m[1] ? m[1] : name;
+  };
+  const sumItemValue = it => it.yearEntries.concat(it.noYearEntries || [])
+    .reduce((s, e) => s + parseNumber(e.value), 0);
+
+  const visitorParks = [];
+  const revenueParks = [];
+  const afterParks = [];
+  items.forEach(it => {
+    if(isParkVisitorItem(it.name)){
+      visitorParks.push({ label: parkLabel(it.name), total: sumItemValue(it), unit: it.latest.unit });
+      return;
+    }
+    if(isParkRevenueItem(it.name)){
+      revenueParks.push({ label: parkLabel(it.name), total: sumItemValue(it), unit: it.latest.unit });
+      return;
+    }
+    afterParks.push(it);
+  });
+  visitorParks.sort((a, b) => b.total - a.total);
+  revenueParks.sort((a, b) => b.total - a.total);
+  afterParks.forEach(it => {
+    if(it.name === VISITOR_TOTAL_NAME){ it.breakdown = visitorParks; it.breakdownTitle = '各遊樂區加總 · 大到小'; }
+    if(it.name === REVENUE_TOTAL_NAME){ it.breakdown = revenueParks; it.breakdownTitle = '各遊樂區加總 · 大到小'; }
+  });
+
+  /* ---- 外來種相關項目（銀合歡／銀膠菊／刺軸含羞木／小花蔓澤蘭）：同物種同類型的多個分項，合併成一張卡片，翻面顯示各分項加總排行 ---- */
+  const SPECIES_KEYWORDS = ['銀合歡', '銀膠菊', '刺軸含羞木', '小花蔓澤蘭'];
+  const METRIC_TYPES = ['移除面積', '收購'];
+  const matchSpeciesMetric = name => {
+    const kw = SPECIES_KEYWORDS.find(k => name.startsWith(k));
+    if(!kw) return null;
+    const metric = METRIC_TYPES.find(m => name.includes(m));
+    if(!metric) return null;
+    return { cardName: kw + metric };
+  };
+  const speciesSubLabel = (name, cardName) => {
+    let rest = name.slice(cardName.length).trim();
+    rest = rest.replace(/^[（(]\s*/, '').replace(/\s*[）)]$/, '').trim();
+    return rest || name;
+  };
+
+  const speciesGroups = new Map(); // cardName -> { division, members:[{item,label}] }
+  const finalItems = [];
+  afterParks.forEach(it => {
+    const match = matchSpeciesMetric(it.name);
+    if(!match){ finalItems.push(it); return; }
+    if(!speciesGroups.has(match.cardName)) speciesGroups.set(match.cardName, { division: it.division, members: [] });
+    speciesGroups.get(match.cardName).members.push({ item: it, label: speciesSubLabel(it.name, match.cardName) });
+  });
+
+  speciesGroups.forEach((grp, cardName) => {
+    if(grp.members.length <= 1){
+      grp.members.forEach(m => finalItems.push(m.item));
+      return;
+    }
+    const breakdown = grp.members
+      .map(m => ({ label: m.label, total: sumItemValue(m.item), unit: m.item.latest.unit }))
+      .sort((a, b) => b.total - a.total);
+
+    const allEntries = [];
+    grp.members.forEach(m => {
+      m.item.yearEntries.forEach(e => allEntries.push(e));
+      (m.item.noYearEntries || []).forEach(e => allEntries.push(e));
+    });
+    const yearEntries = allEntries.filter(e => e.hasYear).sort((a, b) => b.yearSort - a.yearSort || b.dateSort - a.dateSort);
+    const latest = yearEntries[0] || allEntries.slice().sort((a, b) => b.dateSort - a.dateSort)[0];
+
+    finalItems.push({
+      name: cardName,
+      division: grp.division,
+      hasYearData: !!(latest && latest.hasYear),
+      latest,
+      yearEntries: [],
+      noYearEntries: [],
+      fallbackNote: latest,
+      breakdown,
+      breakdownTitle: '分項加總 · 大到小'
+    });
+  });
+
+  return finalItems;
 }
 
 function groupItems(items){
@@ -744,23 +948,56 @@ function renderSections(items, opts){
     const cardsHtml = group.items.map(item => {
       const key = item.name + '||' + item.division;
       const isNew = changedKeys.has(key);
+      const latest = item.latest;
+
+      const yearBadge = item.hasYearData
+        ? `<span class="card-year-badge">${escapeHtml(latest.yearLabel)}年度</span>`
+        : '';
+
+      let backTitle, backBody;
+      if(item.breakdown && item.breakdown.length){
+        backTitle = item.breakdownTitle || '分項加總 · 大到小';
+        const rowsHtml = item.breakdown.map(p => `
+          <div class="year-line">
+            <span class="year-badge">${escapeHtml(p.label)}</span>
+            <span class="year-num">${escapeHtml(formatNumber(p.total))}<span class="year-unit">${escapeHtml(p.unit)}</span></span>
+          </div>`).join('');
+        backBody = `<div class="year-list">${rowsHtml}</div>`;
+      }else if(item.hasYearData){
+        backTitle = '各年度資料';
+        const rowsHtml = item.yearEntries.map(y => `
+          <div class="year-line">
+            <span class="year-badge">${escapeHtml(y.yearLabel)}年</span>
+            <span class="year-num">${escapeHtml(y.value || '—')}<span class="year-unit">${escapeHtml(y.unit)}</span></span>
+          </div>`).join('');
+        const noted = item.yearEntries.find(y => y.note || y.url);
+        const noteHtml = noted ? `<div class="back-note">${linkify(noted.note, noted.url)}</div>` : '';
+        backBody = `<div class="year-list">${rowsHtml}</div>${noteHtml}`;
+      }else{
+        backTitle = 'Field Note';
+        backBody = `<div class="no-year-note">${linkify(item.fallbackNote.note, item.fallbackNote.url)}</div>`;
+      }
+
       return `
     <div class="card${isNew ? ' updated' : ''}" tabindex="0">
       <div class="card-inner">
         <div class="face face-front" style="--accent:${accent}">
           <div>
-            <div class="card-label">${escapeHtml(item.name)}</div>
-            <div class="card-number">${escapeHtml(item.value)}<span class="unit">${escapeHtml(item.unit)}</span></div>
+            <div class="card-top">
+              <div class="card-label">${escapeHtml(item.name)}</div>
+              ${yearBadge}
+            </div>
+            <div class="card-number">${escapeHtml(latest.value || '—')}<span class="unit">${escapeHtml(latest.unit)}</span></div>
           </div>
           <div class="card-foot">
-            <span class="card-date">更新 ${escapeHtml(item.date)}</span>
+            <span class="card-date">更新 ${escapeHtml(latest.date)}</span>
             <span class="card-hint">點按翻面 ›</span>
           </div>
         </div>
         <div class="face face-back" style="--accent:${accent}">
-          <div class="back-title">Field Note</div>
-          <div class="back-body">${linkify(item.note, item.url)}</div>
-          <div class="back-row"><span>更新日期</span><span>${escapeHtml(item.date)}</span></div>
+          <div class="back-title">${backTitle}</div>
+          <div class="back-body">${backBody}</div>
+          <div class="back-row"><span>更新日期</span><span>${escapeHtml(latest.date)}</span></div>
         </div>
       </div>
     </div>`;
@@ -911,20 +1148,21 @@ function checkGvizStatus(response){
 /* 方式一：直接以 fetch() 讀取（多數情況下最快，且能取得明確的 HTTP 狀態） */
 async function loadViaFetch(){
   const url = gvizJsonUrl(null);
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('連線逾時（fetch）。')), FETCH_TIMEOUT_MS);
+  });
   try{
-    const res = await fetch(url, { signal: controller.signal, credentials: 'omit', mode: 'cors', cache: 'no-store' });
+    const res = await Promise.race([
+      fetch(url, { credentials: 'omit', mode: 'cors', cache: 'no-store' }),
+      timeoutPromise
+    ]);
     if(!res.ok){
       throw new Error(`HTTP ${res.status}：試算表未回應正常內容，請確認分享權限與網址是否正確。`);
     }
     const text = await res.text();
     return checkGvizStatus(parseGvizWrapper(text));
   }catch(e){
-    if(e.name === 'AbortError') throw new Error('連線逾時（fetch）。');
     throw e;
-  }finally{
-    clearTimeout(timer);
   }
 }
 
@@ -1013,14 +1251,14 @@ async function fetchSheetData(isManual){
     const items = parseGvizResponse(response);
     if(!items.length) throw new Error('試算表目前沒有可顯示的資料列。');
 
-    const newKey = items.map(i => `${i.name}|${i.division}|${i.value}|${i.unit}|${i.date}`).sort().join('~~');
+    const itemSignature = i => `${i.name}|${i.division}|${i.latest.yearLabel}|${i.latest.value}|${i.latest.unit}|${i.latest.date}|${i.yearEntries.length}`;
+    const newKey = items.map(itemSignature).sort().join('~~');
     const changedKeys = new Set();
     if(currentItemsKey && newKey !== currentItemsKey){
       // 找出實際有變化的項目，用來做卡片提示動畫
       const prevSet = new Set(currentItemsKey.split('~~'));
       items.forEach(i => {
-        const sig = `${i.name}|${i.division}|${i.value}|${i.unit}|${i.date}`;
-        if(!prevSet.has(sig)) changedKeys.add(i.name + '||' + i.division);
+        if(!prevSet.has(itemSignature(i))) changedKeys.add(i.name + '||' + i.division);
       });
     }
     currentItemsKey = newKey;
