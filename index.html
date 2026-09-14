@@ -379,6 +379,13 @@ h1{
   margin:6px 0;
 }
 .back-body a{ color:var(--kincha); }
+.back-subtitle{
+  font-family:'Noto Sans TC', sans-serif;
+  font-size:9.5px;
+  color:rgba(243,236,217,.55);
+  margin-top:-4px;
+  margin-bottom:8px;
+}
 .year-list{
   display:flex;
   flex-direction:column;
@@ -983,9 +990,10 @@ function renderSections(items, opts){
         ? `<span class="card-year-badge">${escapeHtml(latest.yearLabel)}年度</span>`
         : '';
 
-      let backTitle, backBody;
+      let backTitle, backSubtitle, backBody;
       if(item.breakdown && item.breakdown.length){
         backTitle = item.breakdownTitle || '分項加總 · 大到小';
+        backSubtitle = '依累計總數由大到小排序';
         const rowsHtml = item.breakdown.map(p => {
           const isZero = p.total === 0;
           const text = isZero ? (p.note || '無統計') : '';
@@ -999,6 +1007,7 @@ function renderSections(items, opts){
         backBody = `<div class="year-list">${rowsHtml}</div>`;
       }else if(item.hasYearData){
         backTitle = '各年度資料';
+        backSubtitle = '';
         const rowsHtml = item.yearEntries.map(y => `
           <div class="year-line">
             <span class="year-badge">${escapeHtml(y.yearLabel)}年</span>
@@ -1009,8 +1018,11 @@ function renderSections(items, opts){
         backBody = `<div class="year-list">${rowsHtml}</div>${noteHtml}`;
       }else{
         backTitle = 'Field Note';
+        backSubtitle = '';
         backBody = `<div class="no-year-note">${linkify(item.fallbackNote.note, item.fallbackNote.url)}</div>`;
       }
+
+      const backSubtitleHtml = backSubtitle ? `<div class="back-subtitle">${escapeHtml(backSubtitle)}</div>` : '';
 
       return `
     <div class="card${isNew ? ' updated' : ''}" tabindex="0">
@@ -1030,6 +1042,7 @@ function renderSections(items, opts){
         </div>
         <div class="face face-back" style="--accent:${accent}">
           <div class="back-title">${backTitle}</div>
+          ${backSubtitleHtml}
           <div class="back-body">${backBody}</div>
           <div class="back-row"><span>更新日期</span><span>${escapeHtml(latest.date)}</span></div>
         </div>
