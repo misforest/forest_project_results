@@ -413,6 +413,15 @@ h1{
   color:rgba(243,236,217,.75);
   margin-left:3px;
 }
+.year-inline-note{
+  font-family:'Noto Sans TC', sans-serif;
+  font-weight:500;
+  font-size:9.5px;
+  font-style:italic;
+  color:rgba(243,236,217,.55);
+  margin-left:5px;
+  white-space:nowrap;
+}
 .back-note{
   margin-top:10px;
   padding-top:8px;
@@ -809,7 +818,7 @@ function parseGvizResponse(response){
   });
 
   /* 第二步：整理每個項目的年度清單，決定卡片正面要顯示的「最新年度」資料 */
-  const items = [];
+  const rawItems = [];
   groupMap.forEach(group => {
     const entries = Array.from(group.byYearLabel.values());
     const yearEntries = entries
@@ -821,7 +830,7 @@ function parseGvizResponse(response){
     const latest = hasYearData ? yearEntries[0] : (noYearEntries[0] || entries[0]);
     if(!latest) return;
 
-    items.push({
+    rawItems.push({
       name: group.name,
       division: group.division,
       hasYearData,
@@ -830,6 +839,18 @@ function parseGvizResponse(response){
       noYearEntries,
       fallbackNote: noYearEntries[0] || latest
     });
+  });
+
+  /* ---- 顯示名稱對照：部分項目原始名稱較長，改用簡短名稱顯示（不影響資料本身） ---- */
+  const DISPLAY_NAME_OVERRIDES = {
+    '自然碳匯與生物多樣性專案媒合平臺': 'ESG平臺媒合案件數',
+    '自然碳匯與生物多樣性專案媒合平臺 - 合作團體': 'ESG平臺合作團體',
+    '自然碳匯與生物多樣性專案媒合平臺 - 累積碳匯效益': 'ESG平臺累計碳匯效益',
+    '自然碳匯與生物多樣性專案媒合平臺 - 累計金額': 'ESG平臺媒合案件投入累計金額'
+  };
+  const items = rawItems.map(it => {
+    if(DISPLAY_NAME_OVERRIDES[it.name]) it.name = DISPLAY_NAME_OVERRIDES[it.name];
+    return it;
   });
 
   /* ---- 個別森林遊樂區項目：不獨立成字卡，改為加總後掛在對應的累計卡片翻面 ---- */
@@ -843,17 +864,25 @@ function parseGvizResponse(response){
   };
   const sumItemValue = it => it.yearEntries.concat(it.noYearEntries || [])
     .reduce((s, e) => s + parseNumber(e.value), 0);
+  /* 找出可用來說明「為何是0」的備註：優先找該年度值為0且有備註的那一筆，否則找任一有備註的 */
+  const breakdownNoteFor = it => {
+    const all = it.yearEntries.concat(it.noYearEntries || []);
+    const zeroWithNote = all.find(e => parseNumber(e.value) === 0 && e.note);
+    if(zeroWithNote) return zeroWithNote.note;
+    const anyNote = all.find(e => e.note);
+    return anyNote ? anyNote.note : '';
+  };
 
   const visitorParks = [];
   const revenueParks = [];
   const afterParks = [];
   items.forEach(it => {
     if(isParkVisitorItem(it.name)){
-      visitorParks.push({ label: parkLabel(it.name), total: sumItemValue(it), unit: it.latest.unit });
+      visitorParks.push({ label: parkLabel(it.name), total: sumItemValue(it), unit: it.latest.unit, note: breakdownNoteFor(it) });
       return;
     }
     if(isParkRevenueItem(it.name)){
-      revenueParks.push({ label: parkLabel(it.name), total: sumItemValue(it), unit: it.latest.unit });
+      revenueParks.push({ label: parkLabel(it.name), total: sumItemValue(it), unit: it.latest.unit, note: breakdownNoteFor(it) });
       return;
     }
     afterParks.push(it);
@@ -957,11 +986,16 @@ function renderSections(items, opts){
       let backTitle, backBody;
       if(item.breakdown && item.breakdown.length){
         backTitle = item.breakdownTitle || '分項加總 · 大到小';
-        const rowsHtml = item.breakdown.map(p => `
+        const rowsHtml = item.breakdown.map(p => {
+          const isZero = p.total === 0;
+          const text = isZero ? (p.note || '無統計') : '';
+          const zeroNote = text ? `<span class="year-inline-note">${escapeHtml(text)}</span>` : '';
+          return `
           <div class="year-line">
             <span class="year-badge">${escapeHtml(p.label)}</span>
-            <span class="year-num">${escapeHtml(formatNumber(p.total))}<span class="year-unit">${escapeHtml(p.unit)}</span></span>
-          </div>`).join('');
+            <span class="year-num">${escapeHtml(formatNumber(p.total))}<span class="year-unit">${escapeHtml(p.unit)}</span>${zeroNote}</span>
+          </div>`;
+        }).join('');
         backBody = `<div class="year-list">${rowsHtml}</div>`;
       }else if(item.hasYearData){
         backTitle = '各年度資料';
