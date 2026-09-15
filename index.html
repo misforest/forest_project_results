@@ -860,6 +860,17 @@ function parseGvizResponse(response){
     return it;
   });
 
+  /* ---- 特定項目正面改顯示「歷年資料總和」，翻面仍維持各年度清單＋備註 ---- */
+  const SUM_FRONT_ITEM_NAMES = ['租地補償收回'];
+  items.forEach(it => {
+    if(SUM_FRONT_ITEM_NAMES.includes(it.name)){
+      const total = it.yearEntries.concat(it.noYearEntries || [])
+        .reduce((s, e) => s + parseNumber(e.value), 0);
+      it.latest = Object.assign({}, it.latest, { value: formatNumber(total) });
+      it.frontIsSum = true;
+    }
+  });
+
   /* ---- 個別森林遊樂區項目：不獨立成字卡，改為加總後掛在對應的累計卡片翻面 ---- */
   const VISITOR_TOTAL_NAME = '國家森林遊樂區遊客人數';
   const REVENUE_TOTAL_NAME = '國家森林遊樂區門票收入';
@@ -1016,7 +1027,7 @@ function renderSections(items, opts){
       const isNew = changedKeys.has(key);
       const latest = item.latest;
 
-      const yearBadge = item.hasYearData
+      const yearBadge = (item.hasYearData && !item.frontIsSum)
         ? `<span class="card-year-badge">${escapeHtml(latest.yearLabel)}年度</span>`
         : '';
 
