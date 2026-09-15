@@ -869,37 +869,67 @@ function parseGvizResponse(response){
     const m = name.match(/^(.*?)國家森林遊樂區/);
     return m && m[1] ? m[1] : name;
   };
-  const sumItemValue = it => it.yearEntries.concat(it.noYearEntries || [])
-    .reduce((s, e) => s + parseNumber(e.value), 0);
-  /* 找出可用來說明「為何是0」的備註：優先找該年度值為0且有備註的那一筆，否則找任一有備註的 */
-  const breakdownNoteFor = it => {
+  /* 找出一群項目裡實際出現過的最新年度（例如115），避免跟其他項目的年度對不上 */
+  const maxYearAmong = list => list.reduce((max, it) => {
+    const localMax = it.yearEntries.reduce((m, e) => Math.max(m, e.yearSort), -1);
+    return Math.max(max, localMax);
+  }, -1);
+  /* 取出該項目「目標年度」那一筆的值與備註；找不到精準符合的年度時，退而使用該園區僅有的一筆，
+     或更新時間最新的一筆（避免因年度欄位格式辨識失敗而誤判成0）。值為 0 或「-」都視為0 */
+  const targetYearEntryOf = (it, targetYear) => {
     const all = it.yearEntries.concat(it.noYearEntries || []);
-    const zeroWithNote = all.find(e => parseNumber(e.value) === 0 && e.note);
-    if(zeroWithNote) return zeroWithNote.note;
-    const anyNote = all.find(e => e.note);
-    return anyNote ? anyNote.note : '';
+    if(!all.length) return { value: 0, note: '' };
+    let entry = targetYear >= 0 ? it.yearEntries.find(e => e.yearSort === targetYear) : null;
+    if(!entry){
+      entry = all.length === 1 ? all[0] : all.slice().sort((a, b) => b.dateSort - a.dateSort)[0];
+    }
+    const raw = String(entry.value ?? '').trim();
+    const isDash = raw === '-' || raw === '－' || raw === '—';
+    const value = isDash ? 0 : parseNumber(entry.value);
+    return { value, note: entry.note || '' };
   };
 
-  const visitorParks = [];
-  const revenueParks = [];
+  const visitorItemsRaw = [];
+  const revenueItemsRaw = [];
   const afterParks = [];
   items.forEach(it => {
-    if(isParkVisitorItem(it.name)){
-      visitorParks.push({ label: parkLabel(it.name), total: sumItemValue(it), unit: it.latest.unit, note: breakdownNoteFor(it) });
-      return;
-    }
-    if(isParkRevenueItem(it.name)){
-      revenueParks.push({ label: parkLabel(it.name), total: sumItemValue(it), unit: it.latest.unit, note: breakdownNoteFor(it) });
-      return;
-    }
+    if(isParkVisitorItem(it.name)){ visitorItemsRaw.push(it); return; }
+    if(isParkRevenueItem(it.name)){ revenueItemsRaw.push(it); return; }
     afterParks.push(it);
   });
-  visitorParks.sort((a, b) => b.total - a.total);
-  revenueParks.sort((a, b) => b.total - a.total);
+
+  /* 若整批個別園區都抓不到年度，標題改用整份試算表偵測到的最新年度，避免顯示 -1 */
+  const SHEETWIDE_LATEST_YEAR = items.reduce((max, it) => {
+    const localMax = it.yearEntries.reduce((m, e) => Math.max(m, e.yearSort), -1);
+    return Math.max(max, localMax);
+  }, -1);
+  const visitorLatestYear = maxYearAmong(visitorItemsRaw) >= 0 ? maxYearAmong(visitorItemsRaw) : SHEETWIDE_LATEST_YEAR;
+  const revenueLatestYear = maxYearAmong(revenueItemsRaw) >= 0 ? maxYearAmong(revenueItemsRaw) : SHEETWIDE_LATEST_YEAR;
+
+  const buildParkRanking = (list, targetYear) => list
+    .map(it => {
+      const e = targetYearEntryOf(it, targetYear);
+      return { label: parkLabel(it.name), value: e.value, note: e.note, unit: it.latest.unit };
+    })
+    .sort((a, b) => b.value - a.value);
+
+  const visitorRanking = buildParkRanking(visitorItemsRaw, visitorLatestYear);
+  const revenueRanking = buildParkRanking(revenueItemsRaw, revenueLatestYear);
+
   afterParks.forEach(it => {
-    if(it.name === VISITOR_TOTAL_NAME){ it.breakdown = visitorParks; it.breakdownTitle = '各遊樂區加總 · 大到小'; }
-    if(it.name === REVENUE_TOTAL_NAME){ it.breakdown = revenueParks; it.breakdownTitle = '各遊樂區加總 · 大到小'; }
+    if(it.name === VISITOR_TOTAL_NAME){
+      it.rankBreakdown = visitorRanking;
+      it.rankTitle = `${visitorLatestYear}年度各遊樂區排行 · 大到小`;
+    }
+    if(it.name === REVENUE_TOTAL_NAME){
+      it.rankBreakdown = revenueRanking;
+      it.rankTitle = `${revenueLatestYear}年度各遊樂區排行 · 大到小`;
+    }
   });
+
+  /* 供外來種分項合併使用：加總同一物種項目底下所有列的值 */
+  const sumItemValue = it => it.yearEntries.concat(it.noYearEntries || [])
+    .reduce((s, e) => s + parseNumber(e.value), 0);
 
   /* ---- 外來種相關項目（銀合歡／銀膠菊／刺軸含羞木／小花蔓澤蘭）：同物種同類型的多個分項，合併成一張卡片，翻面顯示各分項加總排行 ---- */
   const SPECIES_KEYWORDS = ['銀合歡', '銀膠菊', '刺軸含羞木', '小花蔓澤蘭'];
@@ -991,7 +1021,20 @@ function renderSections(items, opts){
         : '';
 
       let backTitle, backSubtitle, backBody;
-      if(item.breakdown && item.breakdown.length){
+      if(item.rankBreakdown && item.rankBreakdown.length){
+        backTitle = item.rankTitle || '各遊樂區排行';
+        backSubtitle = '';
+        const rowsHtml = item.rankBreakdown.map(p => {
+          const isZero = p.value === 0;
+          const noteText = isZero ? `(${p.note || '無統計'})` : '';
+          return `
+          <div class="year-line">
+            <span class="year-badge">${escapeHtml(p.label)}</span>
+            <span class="year-num">${escapeHtml(formatNumber(p.value))}<span class="year-unit">${escapeHtml(p.unit)}${escapeHtml(noteText)}</span></span>
+          </div>`;
+        }).join('');
+        backBody = `<div class="year-list">${rowsHtml}</div>`;
+      }else if(item.breakdown && item.breakdown.length){
         backTitle = item.breakdownTitle || '分項加總 · 大到小';
         backSubtitle = '依累計總數由大到小排序';
         const rowsHtml = item.breakdown.map(p => {
