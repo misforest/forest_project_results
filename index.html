@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>林業保育署執行成果 · 即時同步</title>
+<title>林業保育署重大業務成果 · 即時同步</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -335,6 +335,13 @@ h1{
   color:var(--shu-dark);
   font-family:'Noto Sans TC', sans-serif;
 }
+.card-sub-subtitle{
+  margin-top:4px;
+  font-family:'Noto Sans TC', sans-serif;
+  font-size:10.5px;
+  font-weight:600;
+  color:rgba(60,53,39,.55);
+}
 .card-foot{
   display:flex;
   justify-content:space-between;
@@ -601,7 +608,7 @@ footer a{ color:var(--kincha); text-decoration:none; border-bottom:1px solid cur
 
 <div class="masthead">
   <div class="eyebrow">執行成果紀錄 · 即時同步</div>
-  <h1>林業保育署執行成果</h1>
+  <h1>林業保育署重大業務成果</h1>
   <p>彙整各業務組別累計數據，以字卡形式呈現。資料直接連線 Google 試算表，卡片正面顯示每個項目「最新年度」的數值，點按卡片翻面可查看該項目各年度的完整資料；若項目無年度資料，翻面則顯示備註說明。資料每 5 分鐘自動同步一次。</p>
   <div class="src">資料來源 · 林業署重要成果統計資料（Google 試算表）</div>
 </div>
@@ -871,6 +878,16 @@ function parseGvizResponse(response){
     }
   });
 
+  /* ---- 特定項目正面數字下方加註「歷年數量加總」小副標（數字本身仍是最新年度，不取代） ---- */
+  const FRONT_SUM_SUBTITLE_ITEM_NAMES = ['綠鬣蜥移除成果', '埃及聖䴉移除成果', '黑熊救傷收容數量'];
+  items.forEach(it => {
+    if(FRONT_SUM_SUBTITLE_ITEM_NAMES.includes(it.name)){
+      const total = it.yearEntries.concat(it.noYearEntries || [])
+        .reduce((s, e) => s + parseNumber(e.value), 0);
+      it.frontSumSubtitle = `歷年累計 ${formatNumber(total)}${it.latest.unit}`;
+    }
+  });
+
   /* ---- 個別森林遊樂區項目：不獨立成字卡，改為加總後掛在對應的累計卡片翻面 ---- */
   const VISITOR_TOTAL_NAME = '國家森林遊樂區遊客人數';
   const REVENUE_TOTAL_NAME = '國家森林遊樂區門票收入';
@@ -1077,6 +1094,7 @@ function renderSections(items, opts){
       }
 
       const backSubtitleHtml = backSubtitle ? `<div class="back-subtitle">${escapeHtml(backSubtitle)}</div>` : '';
+      const frontSumSubtitleHtml = item.frontSumSubtitle ? `<div class="card-sub-subtitle">${escapeHtml(item.frontSumSubtitle)}</div>` : '';
 
       return `
     <div class="card${isNew ? ' updated' : ''}" tabindex="0">
@@ -1088,6 +1106,7 @@ function renderSections(items, opts){
               ${yearBadge}
             </div>
             <div class="card-number">${escapeHtml(latest.value || '—')}<span class="unit">${escapeHtml(latest.unit)}</span></div>
+            ${frontSumSubtitleHtml}
           </div>
           <div class="card-foot">
             <span class="card-date">更新 ${escapeHtml(latest.date)}</span>
@@ -1136,7 +1155,7 @@ function showSkeleton(){
 
 function buildDiagnosticText(){
   const lines = [];
-  lines.push('【林業保育署執行成果 · 診斷資訊】');
+  lines.push('【林業保育署重大業務成果 · 診斷資訊】');
   lines.push('時間：' + new Date().toLocaleString('zh-TW', { hour12:false }));
   lines.push('試算表 ID：' + SHEET_ID);
   lines.push('分頁 GID：' + SHEET_GID);
