@@ -881,8 +881,8 @@ function parseGvizResponse(response){
   const DISPLAY_NAME_OVERRIDES = {
     '自然碳匯與生物多樣性專案媒合平臺': 'ESG平臺媒合案件數',
     '自然碳匯與生物多樣性專案媒合平臺 - 合作團體': 'ESG平臺合作團體',
-    '自然碳匯與生物多樣性專案媒合平臺 - 累積碳匯效益': 'ESG平臺累計碳匯效益',
-    '自然碳匯與生物多樣性專案媒合平臺 - 累計金額': 'ESG平臺媒合案件投入累計金額'
+    '自然碳匯與生物多樣性專案媒合平臺 - 累積碳匯效益': 'ESG平臺碳匯效益',
+    '自然碳匯與生物多樣性專案媒合平臺 - 累計金額': 'ESG平臺媒合案件投入金額'
   };
   const items = rawItems.map(it => {
     if(DISPLAY_NAME_OVERRIDES[it.name]) it.name = DISPLAY_NAME_OVERRIDES[it.name];
@@ -901,7 +901,11 @@ function parseGvizResponse(response){
   });
 
   /* ---- 特定項目正面數字下方加註「歷年數量加總」小副標（數字本身仍是最新年度，不取代） ---- */
-  const FRONT_SUM_SUBTITLE_ITEM_NAMES = ['綠鬣蜥移除成果', '埃及聖䴉移除成果', '黑熊救傷收容數量'];
+  const FRONT_SUM_SUBTITLE_ITEM_NAMES = [
+    '綠鬣蜥移除成果', '埃及聖䴉移除成果', '黑熊救傷收容數量',
+    '銀合歡移除面積', '小花蔓澤蘭移除面積', '刺軸含羞木移除面積', '互花米草移除面積', '銀膠菊移除面積',
+    'ESG平臺媒合案件數', 'ESG平臺合作團體', 'ESG平臺碳匯效益', 'ESG平臺媒合案件投入金額'
+  ];
   items.forEach(it => {
     if(FRONT_SUM_SUBTITLE_ITEM_NAMES.includes(it.name)){
       const total = it.yearEntries.concat(it.noYearEntries || [])
