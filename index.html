@@ -335,6 +335,11 @@ h1{
   color:var(--shu-dark);
   font-family:'Noto Sans TC', sans-serif;
 }
+.card-number-compact{
+  font-size:clamp(14px, 2vw, 17px) !important;
+  font-weight:800 !important;
+  line-height:1.4;
+}
 .card-sub-subtitle{
   margin-top:4px;
   font-family:'Noto Sans TC', sans-serif;
@@ -444,6 +449,7 @@ h1{
   line-height:1.6;
   color:rgba(243,236,217,.75);
 }
+.back-note > div + div{ margin-top:6px; }
 .no-year-note{ font-size:11.8px; line-height:1.65; }
 .back-row{
   display:flex;
@@ -759,6 +765,22 @@ function linkify(note, url){
   return safe || '此項目暫無備註。';
 }
 
+/* 將備註拆成「核准…」片段（用於正面/年度行內顯示）與其餘說明文字（放在翻面最下方）。
+   只有真的以「核准」開頭的片段才視為核准數；不是的話整段都當作一般備註。 */
+function splitBySemicolon(raw){
+  const s = String(raw || '').trim();
+  if(!s) return { first: '', rest: '' };
+  const idx = s.search(/[;；]/);
+  if(idx === -1){
+    if(/^核准/.test(s)) return { first: s, rest: '' };
+    return { first: '', rest: s };
+  }
+  const first = s.slice(0, idx).trim();
+  const rest = s.slice(idx + 1).trim();
+  if(/^核准/.test(first)) return { first, rest };
+  return { first: '', rest: s };
+}
+
 /* 找出試算表欄位在回傳資料中的索引位置 */
 function resolveColumnIndex(cols, aliases){
   for(let i = 0; i < cols.length; i++){
@@ -868,7 +890,7 @@ function parseGvizResponse(response){
   });
 
   /* ---- 特定項目正面改顯示「歷年資料總和」，翻面仍維持各年度清單＋備註 ---- */
-  const SUM_FRONT_ITEM_NAMES = ['租地補償收回'];
+  const SUM_FRONT_ITEM_NAMES = ['累計租地補償收回面積'];
   items.forEach(it => {
     if(SUM_FRONT_ITEM_NAMES.includes(it.name)){
       const total = it.yearEntries.concat(it.noYearEntries || [])
@@ -886,6 +908,17 @@ function parseGvizResponse(response){
         .reduce((s, e) => s + parseNumber(e.value), 0);
       it.frontSumSubtitle = `歷年累計 ${formatNumber(total)}${it.latest.unit}`;
     }
+  });
+
+  /* ---- 獎勵輔導造林計畫(新制)受理/核准新植面積：正面（及翻面各年度）改成「受理面積X/核准Y」的組合格式，
+     核准數取自該年度備註欄「分號」前段，分號後段的其餘文字才當一般備註顯示在翻面最下方 ---- */
+  const APPROVAL_SPLIT_ITEM_NAME = '獎勵輔導造林計畫(新制)受理/核准新植面積';
+  items.forEach(it => {
+    if(it.name !== APPROVAL_SPLIT_ITEM_NAME) return;
+    it.isApprovalSplit = true;
+    const { first: approved } = splitBySemicolon(it.latest.note);
+    const composed = `受理面積${it.latest.value || '—'}${it.latest.unit}` + (approved ? `/${approved}` : '');
+    it.latest = Object.assign({}, it.latest, { value: composed, unit: '' });
   });
 
   /* ---- 個別森林遊樂區項目：不獨立成字卡，改為加總後掛在對應的累計卡片翻面 ---- */
@@ -1079,13 +1112,37 @@ function renderSections(items, opts){
       }else if(item.hasYearData){
         backTitle = '各年度資料';
         backSubtitle = '';
-        const rowsHtml = item.yearEntries.map(y => `
+        const rowsHtml = item.yearEntries.map(y => {
+          if(item.isApprovalSplit){
+            const { first: approved } = splitBySemicolon(y.note);
+            const composed = `受理面積${y.value || '—'}${y.unit}` + (approved ? `/${approved}` : '');
+            return `
+          <div class="year-line">
+            <span class="year-badge">${escapeHtml(y.yearLabel)}年</span>
+            <span class="year-num">${escapeHtml(composed)}</span>
+          </div>`;
+          }
+          return `
           <div class="year-line">
             <span class="year-badge">${escapeHtml(y.yearLabel)}年</span>
             <span class="year-num">${escapeHtml(y.value || '—')}<span class="year-unit">${escapeHtml(y.unit)}</span></span>
-          </div>`).join('');
-        const noted = item.yearEntries.find(y => y.note || y.url);
-        const noteHtml = noted ? `<div class="back-note">${linkify(noted.note, noted.url)}</div>` : '';
+          </div>`;
+        }).join('');
+        let noteHtml = '';
+        if(item.isApprovalSplit){
+          const restEntries = item.yearEntries
+            .map(y => ({ y, rest: splitBySemicolon(y.note).rest }))
+            .filter(r => r.rest);
+          if(restEntries.length){
+            const notesHtml = restEntries
+              .map(r => `<div>${escapeHtml(r.y.yearLabel)}年：${linkify(r.rest, r.y.url)}</div>`)
+              .join('');
+            noteHtml = `<div class="back-note">${notesHtml}</div>`;
+          }
+        }else{
+          const noted = item.yearEntries.find(y => y.note || y.url);
+          noteHtml = noted ? `<div class="back-note">${linkify(noted.note, noted.url)}</div>` : '';
+        }
         backBody = `<div class="year-list">${rowsHtml}</div>${noteHtml}`;
       }else{
         backTitle = 'Field Note';
@@ -1105,7 +1162,7 @@ function renderSections(items, opts){
               <div class="card-label">${escapeHtml(item.name)}</div>
               ${yearBadge}
             </div>
-            <div class="card-number">${escapeHtml(latest.value || '—')}<span class="unit">${escapeHtml(latest.unit)}</span></div>
+            <div class="card-number${item.isApprovalSplit ? ' card-number-compact' : ''}">${escapeHtml(latest.value || '—')}<span class="unit">${escapeHtml(latest.unit)}</span></div>
             ${frontSumSubtitleHtml}
           </div>
           <div class="card-foot">
