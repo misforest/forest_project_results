@@ -756,7 +756,19 @@ function parseNumber(raw){
 
 /* 將數字加上千分位逗號 */
 function formatNumber(n){
-  return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  return n.toLocaleString('en-US', { maximumFractionDigits: 6 });
+}
+
+/* 字卡上顯示原始「值」欄位時使用：純數字就補上千分位逗號並保留完整小數；
+   不是純數字（例如「-」、空白，或已經是組合文字如「受理面積...」）則原樣顯示 */
+function formatDisplayValue(raw){
+  const s = String(raw ?? '').trim();
+  if(!s) return s;
+  const cleaned = s.replace(/,/g, '');
+  if(!/^-?\d+(\.\d+)?$/.test(cleaned)) return s;
+  const n = parseFloat(cleaned);
+  if(isNaN(n)) return s;
+  return formatNumber(n);
 }
 
 /* 解析「年度」欄位：回傳顯示用文字與排序用數值；若欄位為空或無法解析則視為無年度資料 */
@@ -827,7 +839,7 @@ function formatBudgetNote(raw){
   let m;
   while((m = re.exec(s)) !== null){
     const label = m[1].replace(/^[、,，\s]+/, '').trim();
-    rows.push({ label, amount: m[2] + m[3] });
+    rows.push({ label, amount: formatDisplayValue(m[2]) + m[3] });
   }
   if(!rows.length) return formatNoteHtml(s);
   return rows.map(r => `<div class="budget-line"><span class="budget-label">${escapeHtml(r.label)}</span><span class="budget-amt">${escapeHtml(r.amount)}</span></div>`).join('');
@@ -981,7 +993,7 @@ function parseGvizResponse(response){
     if(it.name !== APPROVAL_SPLIT_ITEM_NAME) return;
     it.isApprovalSplit = true;
     const { first: approved } = splitBySemicolon(it.latest.note);
-    const composed = `受理面積${it.latest.value || '—'}${it.latest.unit}` + (approved ? `/${approved}` : '');
+    const composed = `受理面積${formatDisplayValue(it.latest.value) || '—'}${it.latest.unit}` + (approved ? `/${approved}` : '');
     it.latest = Object.assign({}, it.latest, { value: composed, unit: '' });
   });
 
@@ -1191,7 +1203,7 @@ function renderSections(items, opts){
           <div class="year-block">
             <div class="year-line">
               <span class="year-badge">${escapeHtml(y.yearLabel)}年</span>
-              <span class="year-num">${escapeHtml(y.value || '—')}<span class="year-unit">${escapeHtml(y.unit)}</span></span>
+              <span class="year-num">${escapeHtml(formatDisplayValue(y.value) || '—')}<span class="year-unit">${escapeHtml(y.unit)}</span></span>
             </div>
             ${noteBlock}
           </div>`;
@@ -1203,7 +1215,7 @@ function renderSections(items, opts){
         const rowsHtml = item.yearEntries.map(y => {
           if(item.isApprovalSplit){
             const { first: approved } = splitBySemicolon(y.note);
-            const composed = `受理面積${y.value || '—'}${y.unit}` + (approved ? `/${approved}` : '');
+            const composed = `受理面積${formatDisplayValue(y.value) || '—'}${y.unit}` + (approved ? `/${approved}` : '');
             return `
           <div class="year-line">
             <span class="year-badge">${escapeHtml(y.yearLabel)}年</span>
@@ -1213,7 +1225,7 @@ function renderSections(items, opts){
           return `
           <div class="year-line">
             <span class="year-badge">${escapeHtml(y.yearLabel)}年</span>
-            <span class="year-num">${escapeHtml(y.value || '—')}<span class="year-unit">${escapeHtml(y.unit)}</span></span>
+            <span class="year-num">${escapeHtml(formatDisplayValue(y.value) || '—')}<span class="year-unit">${escapeHtml(y.unit)}</span></span>
           </div>`;
         }).join('');
         let noteHtml = '';
@@ -1250,7 +1262,7 @@ function renderSections(items, opts){
               <div class="card-label">${escapeHtml(item.name)}</div>
               ${yearBadge}
             </div>
-            <div class="card-number${item.isApprovalSplit ? ' card-number-compact' : ''}">${escapeHtml(latest.value || '—')}<span class="unit">${escapeHtml(latest.unit)}</span></div>
+            <div class="card-number${item.isApprovalSplit ? ' card-number-compact' : ''}">${escapeHtml(formatDisplayValue(latest.value) || '—')}<span class="unit">${escapeHtml(latest.unit)}</span></div>
             ${frontSumSubtitleHtml}
           </div>
           <div class="card-foot">
