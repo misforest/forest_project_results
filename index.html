@@ -23,6 +23,7 @@
   --fuji:#8577a3;        /* 藤色 — 保育企劃組 */
   --nando:#4a7c85;       /* 納戶色 — 集水區治理組 */
   --beniger:#9c4b3a;     /* 紅柄色 — 森林管理組 */
+  --nezumi:#6b6f72;      /* 鼠色 — 主計室 */
   --radius:2px;
   --live:#7fb37a;
 }
@@ -403,6 +404,40 @@ h1{
   flex-direction:column;
   gap:0;
 }
+.year-block{
+  padding:6px 0;
+  border-bottom:1px dashed rgba(243,236,217,.2);
+}
+.year-block:last-child{ border-bottom:none; }
+.year-block .year-line{ border-bottom:none; padding:0; }
+.year-note-block{
+  margin-top:4px;
+  padding-left:2px;
+  font-size:10px;
+  line-height:1.6;
+  color:rgba(243,236,217,.72);
+}
+.budget-line{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:10px;
+  padding:2px 0;
+}
+.budget-line + .budget-line{
+  border-top:1px dotted rgba(243,236,217,.14);
+}
+.budget-label{
+  flex:1 1 auto;
+  color:rgba(243,236,217,.68);
+}
+.budget-amt{
+  flex:0 0 auto;
+  font-family:'JetBrains Mono', monospace;
+  font-weight:600;
+  color:rgba(243,236,217,.9);
+  white-space:nowrap;
+}
 .year-line{
   display:flex;
   align-items:baseline;
@@ -661,9 +696,10 @@ const ACCENT_MAP = {
   '森林產業組': 'var(--kaki)',
   '保育企劃組': 'var(--fuji)',
   '集水區治理組': 'var(--nando)',
-  '森林管理組': 'var(--beniger)'
+  '森林管理組': 'var(--beniger)',
+  '主計室': 'var(--nezumi)'
 };
-const GROUP_ORDER = ['保育企劃組', '保育管理組', '森林管理組', '森林產業組', '集水區治理組', '森林育樂組'];
+const GROUP_ORDER = ['保育企劃組', '保育管理組', '森林管理組', '森林產業組', '集水區治理組', '森林育樂組', '主計室'];
 const COL_ALIASES = {
   name:   ['項目'],
   year:   ['年度'],
@@ -781,6 +817,22 @@ function splitBySemicolon(raw){
   return { first: '', rest: s };
 }
 
+/* 將備註依「非數字文字 + 金額 + 單位（億元/萬元/千元/元）」規則拆成一行一筆，方便閱讀；
+   規則不吻合就照原樣（保留換行）顯示 */
+function formatBudgetNote(raw){
+  const s = String(raw || '').replace(/<br\s*\/?>/gi, ' ').trim();
+  if(!s) return '';
+  const re = /([^\d]+?)([\d]+(?:\.\d+)?)(億元|萬元|千元|元)/g;
+  const rows = [];
+  let m;
+  while((m = re.exec(s)) !== null){
+    const label = m[1].replace(/^[、,，\s]+/, '').trim();
+    rows.push({ label, amount: m[2] + m[3] });
+  }
+  if(!rows.length) return formatNoteHtml(s);
+  return rows.map(r => `<div class="budget-line"><span class="budget-label">${escapeHtml(r.label)}</span><span class="budget-amt">${escapeHtml(r.amount)}</span></div>`).join('');
+}
+
 /* 找出試算表欄位在回傳資料中的索引位置 */
 function resolveColumnIndex(cols, aliases){
   for(let i = 0; i < cols.length; i++){
@@ -794,8 +846,16 @@ function cellText(cell){
   if(!cell) return '';
   if(cell.f !== undefined && cell.f !== null && cell.f !== '') return String(cell.f);
   if(cell.v === undefined || cell.v === null) return '';
-  if(typeof cell.v === 'number') return String(Math.round(cell.v * 100) / 100);
+  if(typeof cell.v === 'number') return String(Math.round(cell.v * 1e6) / 1e6);
   return String(cell.v);
+}
+
+/* 數值欄位專用：優先採用儲存格「原始數值」而非顯示格式字串（cell.f），
+   避免儲存格顯示格式（例如設成0位小數）把真正的小數位數蓋掉 */
+function cellNumericText(cell){
+  if(!cell) return '';
+  if(typeof cell.v === 'number') return String(Math.round(cell.v * 1e6) / 1e6);
+  return cellText(cell);
 }
 
 function parseGvizResponse(response){
@@ -824,7 +884,7 @@ function parseGvizResponse(response){
     if(!name || !division) return; // 略過空白列
 
     const rawYear = idx.year >= 0 ? cellText(c[idx.year]).trim() : '';
-    const value = idx.value >= 0 ? cellText(c[idx.value]).trim() : '';
+    const value = idx.value >= 0 ? cellNumericText(c[idx.value]).trim() : '';
     const unit = idx.unit >= 0 ? cellText(c[idx.unit]).trim() : '';
     const rawDate = idx.date >= 0 ? cellText(c[idx.date]).trim() : '';
     const rawNote = idx.note >= 0 ? cellText(c[idx.note]).trim() : '';
@@ -923,6 +983,11 @@ function parseGvizResponse(response){
     const { first: approved } = splitBySemicolon(it.latest.note);
     const composed = `受理面積${it.latest.value || '—'}${it.latest.unit}` + (approved ? `/${approved}` : '');
     it.latest = Object.assign({}, it.latest, { value: composed, unit: '' });
+  });
+
+  /* ---- 主計室（公務預算／基金預算）：翻面每個年度底下要直接列出該年度的細項預算備註，而不是只在最下面放一筆備註 ---- */
+  items.forEach(it => {
+    if(it.division === '主計室') it.showInlineYearNotes = true;
   });
 
   /* ---- 個別森林遊樂區項目：不獨立成字卡，改為加總後掛在對應的累計卡片翻面 ---- */
@@ -1110,6 +1175,25 @@ function renderSections(items, opts){
           <div class="year-line">
             <span class="year-badge">${escapeHtml(p.label)}</span>
             <span class="year-num">${escapeHtml(formatNumber(p.total))}<span class="year-unit">${escapeHtml(p.unit)}</span>${zeroNote}</span>
+          </div>`;
+        }).join('');
+        backBody = `<div class="year-list">${rowsHtml}</div>`;
+      }else if(item.showInlineYearNotes && item.hasYearData){
+        backTitle = '各年度資料';
+        backSubtitle = '';
+        const rowsHtml = item.yearEntries.map(y => {
+          const noteText = formatBudgetNote(y.note);
+          const linkHtml = y.url ? `<a href="${escapeHtml(y.url)}" target="_blank" rel="noopener">查看更多 →</a>` : '';
+          const noteBlock = (noteText || linkHtml)
+            ? `<div class="year-note-block">${noteText}${linkHtml}</div>`
+            : '';
+          return `
+          <div class="year-block">
+            <div class="year-line">
+              <span class="year-badge">${escapeHtml(y.yearLabel)}年</span>
+              <span class="year-num">${escapeHtml(y.value || '—')}<span class="year-unit">${escapeHtml(y.unit)}</span></span>
+            </div>
+            ${noteBlock}
           </div>`;
         }).join('');
         backBody = `<div class="year-list">${rowsHtml}</div>`;
