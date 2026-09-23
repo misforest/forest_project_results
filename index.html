@@ -831,18 +831,24 @@ function splitBySemicolon(raw){
 
 /* 將備註依「非數字文字 + 金額 + 單位（億元/萬元/千元/元）」規則拆成一行一筆，方便閱讀；
    規則不吻合就照原樣（保留換行）顯示 */
+/* 將備註拆成一筆一筆：先用分號（或換行、<br>）切段，每一段再從「結尾」往回找「金額+單位」，
+   這樣即使文字裡本身夾雜數字（例如「728豪雨」）也不會被誤判成金額的開頭 */
 function formatBudgetNote(raw){
-  const s = String(raw || '').replace(/<br\s*\/?>/gi, ' ').replace(/[;；]/g, ' ').trim();
+  const s = String(raw || '').replace(/<br\s*\/?>/gi, '\n').trim();
   if(!s) return '';
-  const re = /([^\d]+?)([\d]+(?:\.\d+)?)(億元|萬元|千元|元)/g;
-  const rows = [];
-  let m;
-  while((m = re.exec(s)) !== null){
-    const label = m[1].replace(/^[、,，\s]+/, '').trim();
-    rows.push({ label, amount: formatDisplayValue(m[2]) + m[3] });
-  }
-  if(!rows.length) return formatNoteHtml(s);
-  return rows.map(r => `<div class="budget-line"><span class="budget-label">${escapeHtml(r.label)}</span><span class="budget-amt">${escapeHtml(r.amount)}</span></div>`).join('');
+  const segments = s.split(/[;；\n\r]+/).map(x => x.trim()).filter(Boolean);
+  if(!segments.length) return '';
+  const amountAtEnd = /^(.*?)([\d]+(?:\.\d+)?)\s*(億元|萬元|千元|元)$/;
+  const rows = segments.map(seg => {
+    seg = seg.replace(/^[、,，\s]+/, '').trim();
+    const m = seg.match(amountAtEnd);
+    if(m) return { label: m[1].trim(), amount: formatDisplayValue(m[2]) + m[3] };
+    return { label: seg, amount: '' };
+  });
+  return rows.map(r => r.amount
+    ? `<div class="budget-line"><span class="budget-label">${escapeHtml(r.label)}</span><span class="budget-amt">${escapeHtml(r.amount)}</span></div>`
+    : `<div class="budget-line"><span class="budget-label">${escapeHtml(r.label)}</span></div>`
+  ).join('');
 }
 
 /* 找出試算表欄位在回傳資料中的索引位置 */
