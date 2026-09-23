@@ -832,7 +832,7 @@ function splitBySemicolon(raw){
 /* 將備註依「非數字文字 + 金額 + 單位（億元/萬元/千元/元）」規則拆成一行一筆，方便閱讀；
    規則不吻合就照原樣（保留換行）顯示 */
 function formatBudgetNote(raw){
-  const s = String(raw || '').replace(/<br\s*\/?>/gi, ' ').trim();
+  const s = String(raw || '').replace(/<br\s*\/?>/gi, ' ').replace(/[;；]/g, ' ').trim();
   if(!s) return '';
   const re = /([^\d]+?)([\d]+(?:\.\d+)?)(億元|萬元|千元|元)/g;
   const rows = [];
